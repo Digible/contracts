@@ -1,0 +1,11 @@
+node_modules
+.idea
+.DS_Store
+/build
+/Flatten.sol
+/dist
+/coverage.json
+/coverage/
+
+temp.txt
+log.txt
