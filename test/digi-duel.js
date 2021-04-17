@@ -81,7 +81,7 @@ contract('DigiDuel', function (accounts) {
 
     describe('create', function () {
 
-        it('OK', async function() {
+      it('OK', async function() {
         const amount = '10000000000000000000'; // 10.0 $DIGI
         const color = '1'; // Red
         const duration = time.duration.days(1);
@@ -123,116 +123,116 @@ contract('DigiDuel', function (accounts) {
             'Created duel has not right value for color'
         );
         assert.equal(
-            duel.accepted,
-            false,
+            duel.acceptedBy,
+            '0x0000000000000000000000000000000000000000',
             'Created duel has not right value for accepted'
         );
-        });
+      });
 
-        it('with not enought amount', async function() {
-            const amount = '100000000000000000000000'; // 100000.0 $DIGI
-            const color = '1'; // Red
-            const duration = time.duration.days(1);
+      it('with not enought amount', async function() {
+        const amount = '100000000000000000000000'; // 100000.0 $DIGI
+        const color = '1'; // Red
+        const duration = time.duration.days(1);
 
-            await expectRevert(
+        await expectRevert(
+        this.digiDuel.create(
+            this.cardOne,
+            amount,
+            color,
+            duration,
+            { from: accounts[1] }
+        ),
+        'ERC20: transfer amount exceeds balance'
+        );
+      });
+
+      it('when not owner', async function() {
+        const amount = '10000000000000000000'; // 10.0 $DIGI
+        const color = '1'; // Red
+        const duration = time.duration.days(1);
+
+        await expectRevert(
             this.digiDuel.create(
-                this.cardOne,
+                this.cardTwo,
                 amount,
                 color,
                 duration,
                 { from: accounts[1] }
             ),
-            'ERC20: transfer amount exceeds balance'
-            );
-        });
-
-        it('when not owner', async function() {
-            const amount = '10000000000000000000'; // 10.0 $DIGI
-            const color = '1'; // Red
-            const duration = time.duration.days(1);
-
-            await expectRevert(
-                this.digiDuel.create(
-                    this.cardTwo,
-                    amount,
-                    color,
-                    duration,
-                    { from: accounts[1] }
-                ),
-                'ERC721: transfer of token that is not own.'
-            );
-        });
+            'ERC721: transfer of token that is not own.'
+        );
+      });
 
     });
 
     describe('cancel', function () {
 
-        it('OK', async function() {
-            const amount = '10000000000000000000'; // 10.0 $DIGI
-            const color = '1'; // Red
-            const duration = time.duration.days(1);
+      it('OK', async function() {
+        const amount = '10000000000000000000'; // 10.0 $DIGI
+        const color = '1'; // Red
+        const duration = time.duration.days(1);
 
-            const duelId = await this.digiDuel.create.call(
-            this.cardOne,
-            amount,
-            color,
-            duration,
-            { from: accounts[1] }
-            );
-            await this.digiDuel.create(
-            this.cardOne,
-            amount,
-            color,
-            duration,
-            { from: accounts[1] }
-            );
+        const duelId = await this.digiDuel.create.call(
+          this.cardOne,
+          amount,
+          color,
+          duration,
+          { from: accounts[1] }
+        );
+        await this.digiDuel.create(
+          this.cardOne,
+          amount,
+          color,
+          duration,
+          { from: accounts[1] }
+        );
 
-            let originalDuel = await this.digiDuel.duels.call(duelId).valueOf();
+        let originalDuel = await this.digiDuel.duels.call(duelId).valueOf();
 
-            await this.digiDuel.cancel(
+        await this.digiDuel.cancel(
+          duelId,
+          { from: accounts[1] }
+        );
+
+        let canceledDuel = await this.digiDuel.duels.call(duelId).valueOf();
+
+        assert.notEqual(
+          originalDuel.endDate,
+          canceledDuel.endDate,
+          'Canceled duel has same endDate'
+        );
+      });
+
+      it('when not te owner', async function() {
+        const amount = '10000000000000000000'; // 10.0 $DIGI
+        const color = '1'; // Red
+        const duration = time.duration.days(1);
+
+        const duelId = await this.digiDuel.create.call(
+          this.cardOne,
+          amount,
+          color,
+          duration,
+          { from: accounts[1] }
+        );
+        await this.digiDuel.create(
+          this.cardOne,
+          amount,
+          color,
+          duration,
+          { from: accounts[1] }
+        );
+
+        //
+
+        await expectRevert(
+        this.digiDuel.cancel(
             duelId,
-            { from: accounts[1] }
-            );
-
-            let canceledDuel = await this.digiDuel.duels.call(duelId).valueOf();
-
-            assert.notEqual(
-            originalDuel.endDate,
-            canceledDuel.endDate,
-            'Canceled duel has same endDate'
-            );
-        });
-
-        it('when not te owner', async function() {
-            const amount = '10000000000000000000'; // 10.0 $DIGI
-            const color = '1'; // Red
-            const duration = time.duration.days(1);
-
-            const duelId = await this.digiDuel.create.call(
-            this.cardOne,
-            amount,
-            color,
-            duration,
-            { from: accounts[1] }
-            );
-            await this.digiDuel.create(
-            this.cardOne,
-            amount,
-            color,
-            duration,
-            { from: accounts[1] }
-            );
-
-            //
-
-            await expectRevert(
-            this.digiDuel.cancel(
-                duelId,
-                { from: accounts[2] }
-            ),
-            'DigiDuel: User is not the token owner'
-            );
-        });
+            { from: accounts[2] }
+        ),
+        'DigiDuel: User is not the token owner'
+        );
+      });
 
         it('when ended', async function() {
             const amount = '10000000000000000000'; // 10.0 $DIGI

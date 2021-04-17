@@ -25,8 +25,6 @@ contract DigiDuel is Ownable, ReentrancyGuard {
     event CanceledDuel(uint256 duelId, address indexed wallet, uint256 tokenId, uint256 amount, Color color, uint256 created);
     event AcceptedDuel(uint256 duelId, address indexed wallet, uint256 tokenId, uint256 amount, Color color, uint256 created);
     event WinnedDuel(uint256 duelId, address indexed wallet, uint256 tokenIdA, uint256 tokenIdB, uint256 totalAmount, Color color, uint256 created);
-    event Log(Color data);
-    event Log(address data);
 
     /******************
     INTERNAL ACCOUNTING
@@ -46,7 +44,9 @@ contract DigiDuel is Ownable, ReentrancyGuard {
         address owner;
         uint256 amount;
         Color color;
-        bool accepted;
+        address acceptedBy;
+        uint256 tokenIdAccepted;
+        address winner;
         uint256 endDate;
     }
 
@@ -97,7 +97,9 @@ contract DigiDuel is Ownable, ReentrancyGuard {
             owner: msg.sender,
             amount: _amount,
             color: _color,
-            accepted: false,
+            acceptedBy: address(0x0),
+            tokenIdAccepted: 0,
+            winner: address(0x0),
             endDate: timeNow + _duration
         });
         lastDuelByToken[_tokenId] = newDuelId;
@@ -148,21 +150,17 @@ contract DigiDuel is Ownable, ReentrancyGuard {
 
         Color winnerColor = _randomColor();
         address winnerAddress = address(0x0);
-        emit Log(winnerColor);
-        emit Log(acceptedColor);
         if (winnerColor == acceptedColor) {
-            
             winnerAddress = msg.sender;
-
         } else {
-
             winnerAddress = duels[_duelId].owner;
             IERC20(digiERC20).transferFrom(msg.sender, winnerAddress, duels[_duelId].amount);
             IERC721(digiERC271).transferFrom(msg.sender, winnerAddress, _tokenId);
-
         }
 
-        duels[_duelId].accepted = true;
+        duels[_duelId].acceptedBy = msg.sender;
+        duels[_duelId].tokenIdAccepted = _tokenId;
+        duels[_duelId].winner = winnerAddress;
 
         IERC20(digiERC20).transfer(winnerAddress, amountAfterFee);
         IERC721(digiERC271).transferFrom(address(this), winnerAddress, duels[_duelId].tokenId);
@@ -231,9 +229,9 @@ contract DigiDuel is Ownable, ReentrancyGuard {
                 _limit
             )
         );
-        uint256 _randomNumber = uint256(_structHash);
-        assembly {_randomNumber := add(mod(_randomNumber, _limit), 1)}
-        return uint8(_randomNumber);
+        uint256 randomNumber = uint256(_structHash);
+        assembly {randomNumber := add(mod(randomNumber, _limit), 1)}
+        return uint8(randomNumber);
     }
 
     function _randomColor() internal view returns (Color) {
@@ -265,7 +263,7 @@ contract DigiDuel is Ownable, ReentrancyGuard {
 
     modifier inProgress(uint256 _duelId) {
         require(
-            (duels[_duelId].endDate > _getTime()) && duels[_duelId].accepted == false,
+            (duels[_duelId].endDate > _getTime()) && duels[_duelId].acceptedBy == address(0x0),
             'DigiDuel: Duel ended'
         );
         _;
