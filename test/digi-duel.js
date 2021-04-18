@@ -14,6 +14,8 @@ contract('DigiDuel', function (accounts) {
         '1000000000000000000000000',
         { from: accounts[0] }
         );
+        
+        await this.digiToken.release({ from: accounts[0] });
 
         this.digiNFT = await DigiNFT.new(
         'https://digi.com/nft/',
