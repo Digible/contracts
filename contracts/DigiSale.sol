@@ -34,8 +34,8 @@ contract DigiSale is ReentrancyGuard, Ownable {
         address payable _fundingAddress
     ) public {
         minimalGoal = 10000000000000000000;
-        hardCap = 150000000000000000000;
-        buyPrice = 9090909091000; // 0,000009090909091 ETH
+        hardCap = 50000000000000000000;
+        buyPrice = 11258091750000; // 0,00001125809175 ETH
         crowdsaleToken = _token;
         fundingAddress = _fundingAddress;
         start = getTime();
@@ -51,7 +51,7 @@ contract DigiSale is ReentrancyGuard, Ownable {
 
     receive() external payable {
         require(msg.value >= 100000000000000000, "Min 0.1 ETH");
-        require(msg.value <= 500000000000000000, "Max 0.5 ETH");
+        require(participants[msg.sender].add(msg.value) <= 500000000000000000, "Max 0.5 ETH");
         sell(msg.sender, msg.value);
     }
 
