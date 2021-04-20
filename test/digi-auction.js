@@ -10,7 +10,6 @@ contract('DigiAuction', function (accounts) {
 
   beforeEach(async function () {
     this.digiToken = await DigiToken.new(
-      '1000000000000000000000000',
       { from: accounts[0] }
     );
 
