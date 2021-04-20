@@ -323,6 +323,53 @@ contract('DigiAuction', function (accounts) {
       );
     });
 
+    it('already buyed', async function() {
+      const minPrice = '1000000000000000000'; // 1.0 $
+      const fixedPrice = '10000000000000000000'; // 10.0 $
+      const duration = time.duration.days(1);
+
+      const auctionId = await this.digiAuction.createAuction.call(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+      await this.digiAuction.createAuction(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+
+      //
+      const purchaseFee = Number(await this.digiAuction.purchaseFee.call());
+
+      const firstUserBalanceBefore = await this.stableToken.balanceOf(accounts[2]);
+      const auctionsBalanceBefore = await this.stableToken.balanceOf(this.digiAuction.address);
+      await this.digiAuction.participateAuction(
+        auctionId,
+        '1000000000000000000',
+        { from: accounts[2] }
+      );
+
+      const userTwoBalanceBefore = await this.stableToken.balanceOf(accounts[4]);
+      await this.digiAuction.directBuy(
+        auctionId,
+        { from: accounts[4] }
+      );
+
+      await expectRevert(
+        this.digiAuction.directBuy(
+          auctionId,
+          { from: accounts[4] }
+        ),
+        'DigiAuction: Already claimed'
+      );
+
+    });
+
   });
 
   describe('participateAuction', function () {
@@ -702,6 +749,51 @@ contract('DigiAuction', function (accounts) {
         await this.digiNFT.ownerOf(this.cardTwo),
         accounts[2],
         'Winner user not received the NFT'
+      );
+    });
+
+    it('when ended and claimed twice', async function() {
+      const minPrice = '1000000000000000000'; // 1.0 $
+      const fixedPrice = '10000000000000000000'; // 10.0 $
+      const duration = time.duration.days(1);
+
+      const auctionId = await this.digiAuction.createAuction.call(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+      await this.digiAuction.createAuction(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+
+      //
+
+      const participationAmount = '1000000000000000000'; // 1.00 $
+      await this.digiAuction.participateAuction(
+        auctionId,
+        participationAmount,
+        { from: accounts[2] }
+      );
+
+      await time.increase(time.duration.days(2));
+
+      await this.digiAuction.claim(
+        auctionId,
+        { from: accounts[4] }
+      );
+
+      await expectRevert(
+        this.digiAuction.claim(
+          auctionId,
+          { from: accounts[4] }
+        ),
+        'DigiAuction: Already claimed'
       );
     });
 

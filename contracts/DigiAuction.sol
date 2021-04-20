@@ -40,6 +40,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     uint256 public auctionCount = 0;
 
     mapping (uint256 => Auction) public auctions;
+    mapping (uint256 => bool) public claimedAuctions;
     mapping (uint256 => Offer) public highestOffers;
     mapping (uint256 => uint256) public lastAuctionByToken;
 
@@ -140,6 +141,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     */
     function directBuy(uint256 _auctionId)
         public
+        notClaimed(_auctionId)
         inProgress(_auctionId)
     {
         require(IERC20(stableERC20).balanceOf(msg.sender) > auctions[_auctionId].fixedPrice, 'DigiAuction: User does not have enough balance');
@@ -156,6 +158,8 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         uint256 timeNow = _getTime();
         auctions[_auctionId].buyed = true;
 
+        claimedAuctions[_auctionId] = true;
+
         _returnPreviousOffer(_auctionId);
 
         emit DirectBuyed(_auctionId, msg.sender, auctions[_auctionId].fixedPrice, timeNow);
@@ -167,6 +171,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     function claim(uint256 _auctionId)
         public
         ended(_auctionId)
+        notClaimed(_auctionId)
     {
         uint256 timeNow = _getTime();
         uint256 amount = highestOffers[_auctionId].offer;
@@ -175,6 +180,8 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
         IERC20(stableERC20).transfer(auctions[_auctionId].owner, amountAfterFee);
         IDigiNFT(digiERC271).transferFrom(address(this), highestOffers[_auctionId].buyer, auctions[_auctionId].tokenId);
+
+        claimedAuctions[_auctionId] = true;
 
         emit Claimed(_auctionId, highestOffers[_auctionId].buyer, amount, timeNow);
     }
@@ -275,6 +282,14 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         require(
             (_getTime() > auctions[_auctionId].endDate) && auctions[_auctionId].buyed == false,
             'DigiAuction: Auction not closed'
+        );
+        _;
+    }
+
+    modifier notClaimed(uint256 _auctionId) {
+        require(
+            (claimedAuctions[_auctionId] == false),
+            'DigiAuction: Already claimed'
         );
         _;
     }
