@@ -14,6 +14,8 @@ contract('DigiMarket', function (accounts) {
       { from: accounts[0] }
     );
 
+    await this.digiToken.release({ from: accounts[0] });
+
     this.digiNFT = await DigiNFT.new(
       'https://digi.com/nft/',
       { from: accounts[0] }

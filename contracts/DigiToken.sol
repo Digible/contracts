@@ -3,8 +3,9 @@ pragma solidity 0.6.5;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/GSN/Context.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DigiToken is Context, IERC20 {
+contract DigiToken is Context, IERC20, Ownable {
     using SafeMath for uint256;
 
     mapping (address => uint256) private _balances;
@@ -16,10 +17,14 @@ contract DigiToken is Context, IERC20 {
     string private _symbol;
     uint8 private _decimals;
 
-    constructor (uint256 amount) public {
+    mapping (address => bool) private _lockWhiteList;
+    bool locked = true;
+
+    constructor () public {
         _name = "Digi";
         _symbol = "DIGI";
         _decimals = 18;
+        uint256 amount = 100000000000000000000000000; // 100M
         _totalSupply = amount;
         _balances[_msgSender()] = amount;
         emit Transfer(address(0), _msgSender(), amount);
@@ -86,9 +91,22 @@ contract DigiToken is Context, IERC20 {
         _burn(account, amount);
     }
 
+    function addToLockWhitelist(address wallet) onlyOwner() external {
+        _lockWhiteList[wallet] = true;
+    }
+
+    function removeFromLockWhitelist(address wallet) onlyOwner() external {
+        _lockWhiteList[wallet] = false;
+    }
+
+    function release() onlyOwner external {
+        locked = false;
+    }
+
     function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
+        require(!locked || _lockWhiteList[sender] || _lockWhiteList[recipient], "ERC20: Not release yet");
         _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
         _balances[recipient] = _balances[recipient].add(amount);
         emit Transfer(sender, recipient, amount);
