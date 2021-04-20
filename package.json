@@ -8,14 +8,14 @@
   },
   "scripts": {
     "test": "truffle test",
-    "flatten-all": "del-cli ./dist && mkdir \\dist && npm run flatten-digi-token && npm run flatten-digi-token-child && npm run flatten-digi-nft && npm run flatten-digi-nft-child && npm run flatten-digi-stable && npm run flatten-digi-auction",
+    "flatten-all": "del-cli ./dist && mkdir \\dist && npm run flatten-digi-token && npm run flatten-digi-token-child && npm run flatten-digi-nft && npm run flatten-digi-nft-child && npm run flatten-digi-auction && npm run flatten-digi-duel && npm run flatten-digi-market",
     "flatten-digi-token": "truffle-flattener contracts/DigiToken.sol > dist/DigiToken.flatten.sol",
     "flatten-digi-token-child": "truffle-flattener contracts/DigiTokenChild.sol > dist/DigiTokenChild.flatten.sol",
     "flatten-digi-nft": "truffle-flattener contracts/DigiNFT.sol > dist/DigiNFT.flatten.sol",
     "flatten-digi-nft-child": "truffle-flattener contracts/DigiNFTChild.sol > dist/DigiNFTChild.flatten.sol",
-    "flatten-digi-stable": "truffle-flattener contracts/mocks/StableToken.sol > dist/StableToken.flatten.sol",
     "flatten-digi-auction": "truffle-flattener contracts/DigiAuction.sol > dist/DigiAuction.flatten.sol",
-    "flatten-digi-market": "truffle-flattener contracts/DigiMarket.sol > dist/DigiMarket.flatten.sol"
+    "flatten-digi-market": "truffle-flattener contracts/DigiMarket.sol > dist/DigiMarket.flatten.sol",
+    "flatten-digi-duel": "truffle-flattener contracts/DigiDuel.sol > dist/DigiDuel.flatten.sol"
   },
   "author": "",
   "license": "ISC",
