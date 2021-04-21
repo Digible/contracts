@@ -11,10 +11,9 @@ contract('DigiDuel', function (accounts) {
 
     beforeEach(async function () {
         this.digiToken = await DigiToken.new(
+        '1000000000000000000000000',
         { from: accounts[0] }
         );
-
-        await this.digiToken.release({ from: accounts[0] });
 
         this.digiNFT = await DigiNFT.new(
         'https://digi.com/nft/',
@@ -195,12 +194,28 @@ contract('DigiDuel', function (accounts) {
           { from: accounts[1] }
         );
 
+        const accountOneBalanceBefore = (await this.digiToken.balanceOf(accounts[1])).toString();
+
         let canceledDuel = await this.digiDuel.duels.call(duelId).valueOf();
 
         assert.notEqual(
           originalDuel.endDate,
           canceledDuel.endDate,
           'Canceled duel has same endDate'
+        );
+
+        assert.equal(
+          (await this.digiNFT.ownerOf(this.cardOne)).toString(),
+          accounts[1].toString(),
+          'Account [1] has not recover the token NFT'
+        );
+
+        const accountOneBalanceAfter = (await this.digiToken.balanceOf(accounts[1])).toString();
+
+        assert.equal(
+          accountOneBalanceAfter,
+          accountOneBalanceBefore,
+          'Account [1] has not recover tokens'
         );
       });
 

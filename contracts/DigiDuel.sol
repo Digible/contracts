@@ -124,6 +124,9 @@ contract DigiDuel is Ownable, ReentrancyGuard {
         uint256 timeNow = _getTime();
         duels[_duelId].endDate = timeNow;
 
+        IERC721(digiERC271).transferFrom(address(this), duels[_duelId].owner, duels[_duelId].tokenId);
+        IERC20(digiERC20).transfer(duels[_duelId].owner, duels[_duelId].amount);
+
         emit CanceledDuel(_duelId, msg.sender, duels[_duelId].tokenId, duels[_duelId].amount, duels[_duelId].color, timeNow);
     }
 
