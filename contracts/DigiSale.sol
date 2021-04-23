@@ -31,14 +31,15 @@ contract DigiSale is ReentrancyGuard, Ownable {
 
     constructor(
         IERC20 _token,
-        address payable _fundingAddress
+        address payable _fundingAddress,
+        uint256 _start
     ) public {
-        minimalGoal = 10000000000000000000;
-        hardCap = 50000000000000000000;
-        buyPrice = 11258091750000; // 0,00001125809175 ETH
+        minimalGoal = 100000000000000000000;
+        hardCap = 300000000000000000000;
+        buyPrice = 12244897960000; // 0,00001224489796 ETH
         crowdsaleToken = _token;
         fundingAddress = _fundingAddress;
-        start = getTime();
+        start = _start;
     }
 
     function getToken()
@@ -47,6 +48,14 @@ contract DigiSale is ReentrancyGuard, Ownable {
     returns(address)
     {
         return address(crowdsaleToken);
+    }
+
+    function getStart()
+    external
+    view
+    returns(uint256)
+    {
+        return start;
     }
 
     receive() external payable {
@@ -131,7 +140,7 @@ contract DigiSale is ReentrancyGuard, Ownable {
     returns(bool)
   {
     return (
-      totalCollected < hardCap && !stopped
+      totalCollected < hardCap && !stopped && getTime() > start
     );
   }
 
@@ -146,7 +155,7 @@ contract DigiSale is ReentrancyGuard, Ownable {
   }
 
   modifier whenCrowdsaleAlive() {
-    require(isActive());
+    require(isActive(), "Not active");
     _;
   }
 

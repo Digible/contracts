@@ -29,13 +29,6 @@ contract DigiNFTChild is DigiNFT, ContextMixin {
         return ContextMixin.msgSender();
     }
 
-    function updateChildChainManager(address newChildChainManagerProxy) external {
-        require(newChildChainManagerProxy != address(0), "Bad ChildChainManagerProxy address");
-        require(_msgSender() == deployer, "You're not allowed");
-
-        childChainManagerProxy = newChildChainManagerProxy;
-    }
-
     function deposit(address user, bytes calldata depositData) external {
         require(_msgSender() == childChainManagerProxy, "You're not allowed to deposit");
 
