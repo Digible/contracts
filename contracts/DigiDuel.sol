@@ -189,7 +189,6 @@ contract DigiDuel is Ownable, ReentrancyGuard {
     * @dev Sets the purchaseFee for every withdraw.
     */
     function setFee(uint256 _purchaseFee) public onlyOwner() {
-        require(_purchaseFee <= 3000, "DigiDuel: Max fee 30%");
         purchaseFee = _purchaseFee;
     }
 

@@ -23,7 +23,6 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     EVENTS
     ******************/
     event CreatedAuction(uint256 auctionId, address indexed wallet, uint256 tokenId, uint256 created);
-    event CanceledAuction(uint256 auctionId, address indexed wallet, uint256 tokenId, uint256 created);
     event NewHighestOffer(uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
     event DirectBuyed(uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
     event Claimed(uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
@@ -174,8 +173,6 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         ended(_auctionId)
         notClaimed(_auctionId)
     {
-        require(highestOffers[_auctionId].buyer != address(0x0), "DigiAuction: Ended without winner");
-
         uint256 timeNow = _getTime();
         uint256 amount = highestOffers[_auctionId].offer;
         uint256 feeAmount = amount.mul(purchaseFee).div(10000);
@@ -204,33 +201,9 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     }
 
     /**
-    * @dev Cancel auction and returns token.
-    */
-    function cancel(uint256 _auctionId)
-        public
-        ended(_auctionId)
-    {
-        require(auctions[_auctionId].owner == msg.sender, 'DigiAuction: User is not the token owner');
-        require(highestOffers[_auctionId].buyer == address(0x0), "DigiAuction: Ended but has winner");
-
-        uint256 timeNow = _getTime();
-
-        auctions[_auctionId].endDate = timeNow;
-
-        IDigiNFT(digiERC271).transferFrom(
-            address(this),
-            auctions[_auctionId].owner,
-            auctions[_auctionId].tokenId
-        );
-
-        emit CanceledAuction(_auctionId, msg.sender, auctions[_auctionId].tokenId, timeNow);
-    }
-
-    /**
     * @dev Sets the purchaseFee for every withdraw.
     */
     function setFee(uint256 _purchaseFee) public onlyOwner() {
-        require(_purchaseFee <= 3000, "DigiAuction: Max fee 30%");
         purchaseFee = _purchaseFee;
     }
 
