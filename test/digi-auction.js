@@ -836,6 +836,119 @@ contract('DigiAuction', function (accounts) {
       );
     });
 
+    it('when ended without winner', async function() {
+      const minPrice = '1000000000000000000'; // 1.0 $
+      const fixedPrice = '10000000000000000000'; // 10.0 $
+      const duration = time.duration.days(1);
+
+      const auctionId = await this.digiAuction.createAuction.call(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+      await this.digiAuction.createAuction(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+
+      //
+
+      await time.increase(time.duration.days(2));
+
+      await expectRevert(
+        this.digiAuction.claim(
+          auctionId,
+          { from: accounts[2] }
+        ),
+        'DigiAuction: Ended without winner'
+      );
+    });
+
+  });
+
+  describe('cancel', function () {
+
+    it('when ended without winner', async function() {
+      const minPrice = '1000000000000000000'; // 1.0 $
+      const fixedPrice = '10000000000000000000'; // 10.0 $
+      const duration = time.duration.days(1);
+
+      const auctionId = await this.digiAuction.createAuction.call(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+      await this.digiAuction.createAuction(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+
+      //
+
+      await time.increase(time.duration.days(2));
+
+      await this.digiAuction.cancel(
+        auctionId,
+        { from: accounts[1] }
+      );
+
+      assert.equal(
+        await this.digiNFT.ownerOf(this.cardTwo),
+        accounts[1],
+        'User has not recover the token'
+      );
+    });
+
+    it('when ended with winner', async function() {
+      const minPrice = '1000000000000000000'; // 1.0 $
+      const fixedPrice = '10000000000000000000'; // 10.0 $
+      const duration = time.duration.days(1);
+
+      const auctionId = await this.digiAuction.createAuction.call(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+      await this.digiAuction.createAuction(
+        this.cardTwo,
+        minPrice,
+        fixedPrice,
+        duration,
+        { from: accounts[1] }
+      );
+
+      //
+
+      const participationAmount = '1000000000000000000'; // 1.00 $
+      await this.digiAuction.participateAuction(
+        auctionId,
+        participationAmount,
+        { from: accounts[2] }
+      );
+
+      await time.increase(time.duration.days(2));
+
+      await expectRevert(
+        this.digiAuction.cancel(
+          auctionId,
+          { from: accounts[1] }
+        ),
+        'DigiAuction: Ended but has winner'
+      );
+    });
+
   });
 
   describe('feesDestinators and feePercentages', function () {
@@ -1019,6 +1132,17 @@ contract('DigiAuction', function (accounts) {
         'purchaseFee has not been setted correctly' 
       );
     });
+
+    it('setFee() to 100%', async function() {
+      await expectRevert(
+        this.digiAuction.setFee(
+          10000,
+          { from: accounts[0] }
+        ),
+        'DigiAuction: Max fee 30%'
+      );
+    });
+
   });
 
 });
