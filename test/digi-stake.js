@@ -9,8 +9,7 @@ contract('DigiStake', function (accounts) {
 
   beforeEach(async function () {
     // Deploy
-    this.digiToken = await DigiToken.new({ from: accounts[0] });
-    await this.digiToken.release({ from: accounts[0] });
+    this.digiToken = await DigiToken.new('10000000000000000000000', { from: accounts[0] });
     this.stableToken = await StableToken.new({ from: accounts[0] });
 
     this.digiStake = await DigiStake.new(
@@ -340,8 +339,4 @@ contract('DigiStake', function (accounts) {
 
 function sumStrings(a,b) { 
   return ((BigInt(a)) + BigInt(b)).toString();
-}
-
-function subStrings(a,b) { 
-  return ((BigInt(a)) - BigInt(b)).toString();
 }

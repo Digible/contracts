@@ -127,7 +127,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
         inProgress(_saleId)
     {
         require(IERC721(sales[_saleId].tokenAddress).ownerOf(sales[_saleId].tokenId) == sales[_saleId].owner, 'DigiMarket: Sale creator user is not longer NFT owner');
-        require(IERC20(stableERC20).balanceOf(msg.sender) >= sales[_saleId].price, 'DigiMarket: User does not have enough balance');
+        require(IERC20(stableERC20).balanceOf(msg.sender) > sales[_saleId].price, 'DigiMarket: User does not have enough balance');
         
         uint amount = sales[_saleId].price;
         uint256 feeAmount = amount.mul(purchaseFee).div(10000);
@@ -161,6 +161,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
     * @dev Sets the purchaseFee for every withdraw.
     */
     function setFee(uint256 _purchaseFee) public onlyOwner() {
+        require(_purchaseFee <= 3000, "DigiMarket: Max fee 30%");
         purchaseFee = _purchaseFee;
     }
 
