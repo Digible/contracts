@@ -24,8 +24,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
     ******************/
     event CreatedSale(uint256 saleId, address indexed wallet, uint256 tokenId, address tokenAddress, uint256 created);
     event CanceledSale(uint256 saleId, address indexed wallet, uint256 tokenId, address tokenAddress, uint256 created);
-    event SaleBuyed(uint256 saleId, address indexed wallet, uint256 amount, uint256 created);
-    event Log(uint256 data);
+    event SaleBuyed(uint256 saleId, address indexed wallet, uint256 amount, uint256 indexed tokenId, address indexed tokenAddress, uint256 created);
 
     /******************
     INTERNAL ACCOUNTING
@@ -140,7 +139,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
         uint256 timeNow = _getTime();
         sales[_saleId].buyed = true;
 
-        emit SaleBuyed(_saleId, msg.sender, sales[_saleId].price, timeNow);
+        emit SaleBuyed(_saleId, msg.sender, sales[_saleId].price, sales[_saleId].tokenId, sales[_saleId].tokenAddress, timeNow);
     }
 
     /**
