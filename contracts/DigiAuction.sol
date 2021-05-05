@@ -275,7 +275,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     *******************/
     modifier requiredAmount(address _wallet, uint256 _amount) {
         require(
-            IERC20(stakeERC20).balanceOf(_wallet) > _amount,
+            IERC20(stakeERC20).balanceOf(_wallet) >= _amount,
             'DigiAuction: User needs more token balance in order to do this action'
         );
         _;
