@@ -17,16 +17,16 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     CONFIG
     ******************/
     uint256 public purchaseFee = 500;   // 5%
-    uint256 public digiAmountRequired = 1000 * (BIGNUMBER);
+    uint256 public digiAmountRequired = 3000 * (BIGNUMBER);
 
     /******************
     EVENTS
     ******************/
     event CreatedAuction(uint256 auctionId, address indexed wallet, uint256 tokenId, uint256 created);
     event CanceledAuction(uint256 auctionId, address indexed wallet, uint256 tokenId, uint256 created);
-    event NewHighestOffer(uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
+    event NewHighestOffer(uint256 indexed auctionId, address indexed wallet, uint256 amount, uint256 created);
     event DirectBuyed(uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
-    event Claimed(uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
+    event Claimed(uint256 indexed tokenId, uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
     event Log(uint256 data);
 
     /******************
@@ -89,6 +89,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         uint256 _duration
     )
         public
+        requiredAmount(msg.sender, digiAmountRequired)
         returns (uint256)
     {
         IDigiNFT(digiERC271).transferFrom(msg.sender, address(this), _tokenId);
@@ -118,7 +119,6 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     function participateAuction(uint256 _auctionId, uint256 _amount)
         public
         nonReentrant()
-        requiredAmount(msg.sender, digiAmountRequired)
         inProgress(_auctionId)
         minPrice(_auctionId, _amount)
         newHighestOffer(_auctionId, _amount)
@@ -186,7 +186,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
         claimedAuctions[_auctionId] = true;
 
-        emit Claimed(_auctionId, highestOffers[_auctionId].buyer, amount, timeNow);
+        emit Claimed(auctions[_auctionId].tokenId, _auctionId, highestOffers[_auctionId].buyer, amount, timeNow);
     }
 
     /**
