@@ -6,6 +6,7 @@ import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 import "../node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "../node_modules/@openzeppelin/contracts/access/AccessControl.sol";
 
 contract DigiMarket is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
@@ -17,6 +18,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
     CONFIG
     ******************/
     uint256 public purchaseFee = 500;   // 5%
+    uint256 public royaltyFee = 500;   // 5%
     uint256 public digiAmountRequired = 3000 * (BIGNUMBER);
 
     /******************
@@ -30,7 +32,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
     INTERNAL ACCOUNTING
     *******************/
     address public stakeERC20;
-    address public digiERC271;
+    address public digiERC721;
     address public stableERC20;
     address[] public feesDestinators;
     uint256[] public feesPercentages;
@@ -39,12 +41,15 @@ contract DigiMarket is Ownable, ReentrancyGuard {
 
     mapping (uint256 => Sale) public sales;
     mapping (address => mapping (uint256 => uint256)) public lastSaleByToken;
+    
+    mapping (uint256 => address) public royaltiesByToken;
 
     struct Sale {
         uint256 tokenId;
         address tokenAddress;
         address owner;
         uint256 price;
+        bool royalty;
         bool buyed;
         uint256 endDate;
     }
@@ -54,15 +59,24 @@ contract DigiMarket is Ownable, ReentrancyGuard {
     *******************/
     constructor(
         address _stakeERC20,
-        address _stableERC20
+        address _stableERC20,
+        address _digiERC721
     )
         public
     {
         require(address(_stakeERC20) != address(0)); 
         require(address(_stableERC20) != address(0));
+        require(address(_digiERC721) != address(0));
 
         stakeERC20 = _stakeERC20;
         stableERC20 = _stableERC20;
+        digiERC721 = _digiERC721;
+    }
+
+    function setRoyaltyForToken(uint256 _tokenId, address beneficiary) external {
+        require(msg.sender == IERC721(digiERC721).ownerOf(_tokenId), "DigiMarket: Not the owner");
+        require(AccessControl(digiERC721).hasRole(keccak256("MINTER"), msg.sender), "DigiMarker: Not minter");
+        royaltiesByToken[_tokenId] = beneficiary;
     }
 
     /**
@@ -90,6 +104,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
             tokenAddress: _tokenAddress,
             owner: msg.sender,
             price: _price,
+            royalty: _tokenAddress == digiERC721 && royaltiesByToken[_tokenId] != address(0),
             buyed: false,
             endDate: timeNow + _duration
         });
@@ -130,10 +145,18 @@ contract DigiMarket is Ownable, ReentrancyGuard {
         
         uint amount = sales[_saleId].price;
         uint256 feeAmount = amount.mul(purchaseFee).div(10000);
-        uint256 amountAfterFee = amount.sub(feeAmount);
+        uint256 royaltyFeeAmount = 0;
+        if (sales[_saleId].royalty) {
+            royaltyFeeAmount = amount.mul(royaltyFee).div(10000);
+        }
+        uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
 
         IERC20(stableERC20).transferFrom(msg.sender, address(this), feeAmount);
         IERC20(stableERC20).transferFrom(msg.sender, sales[_saleId].owner, amountAfterFee);
+    
+        if (royaltyFeeAmount > 0) {
+            IERC20(stableERC20).transferFrom(msg.sender, royaltiesByToken[sales[_saleId].tokenId], royaltyFeeAmount);
+        }
         IERC721(sales[_saleId].tokenAddress).transferFrom(sales[_saleId].owner, msg.sender, sales[_saleId].tokenId);
         
         uint256 timeNow = _getTime();
@@ -162,6 +185,14 @@ contract DigiMarket is Ownable, ReentrancyGuard {
     function setFee(uint256 _purchaseFee) public onlyOwner() {
         require(_purchaseFee <= 3000, "DigiMarket: Max fee 30%");
         purchaseFee = _purchaseFee;
+    }
+
+    /**
+    * @dev Sets the royaltyFee for every withdraw.
+    */
+    function setRoyaltyFee(uint256 _royaltyFee) public onlyOwner() {
+        require(_royaltyFee <= 3000, "DigiMarket: Max fee 30%");
+        royaltyFee = _royaltyFee;
     }
 
     /**
