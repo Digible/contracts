@@ -18,8 +18,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     /******************
     CONFIG
     ******************/
-    uint256 public purchaseFee = 500;   // 5%
-    uint256 public royaltyFee = 500;   // 5%
+    uint256 public purchaseFee = 1000;   // 10%
     uint256 public digiAmountRequired = 3000 * (BIGNUMBER);
 
     /******************
@@ -47,7 +46,11 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     mapping (uint256 => bool) public claimedAuctions;
     mapping (uint256 => Offer) public highestOffers;
     mapping (uint256 => uint256) public lastAuctionByToken;
-    mapping (uint256 => address) public royaltiesByToken;
+    mapping (uint256 => Royalty) public royaltiesByToken;
+    struct Royalty {
+        uint256 fee;
+        address wallet;
+    }
 
     struct Auction {
         uint256 tokenId;
@@ -84,18 +87,13 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         stableERC20 = _stableERC20;
     }
 
-    function setRoyaltyForToken(uint256 _tokenId, address beneficiary) external {
+    function setRoyaltyForToken(uint256 _tokenId, address beneficiary, uint256 _fee) external {
         require(msg.sender == IERC721(digiERC271).ownerOf(_tokenId), "DigiAuction: Not the owner");
         require(AccessControl(digiERC271).hasRole(keccak256("MINTER"), msg.sender), "DigiAuction: Not minter");
-        royaltiesByToken[_tokenId] = beneficiary;
-    }
-
-    /**
-    * @dev Sets the royaltyFee for every withdraw.
-    */
-    function setRoyaltyFee(uint256 _royaltyFee) public onlyOwner() {
-        require(_royaltyFee <= 3000, "DigiMarket: Max fee 30%");
-        royaltyFee = _royaltyFee;
+        royaltiesByToken[_tokenId] = Royalty({
+            wallet: beneficiary,
+            fee: _fee
+        });
     }
 
     /**
@@ -123,7 +121,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
             minPrice: _minPrice,
             fixedPrice: _fixedPrice,
             buyed: false,
-            royalty: royaltiesByToken[_tokenId] != address(0),
+            royalty: royaltiesByToken[_tokenId].wallet != address(0),
             endDate: timeNow + _duration
         });
         lastAuctionByToken[_tokenId] = newAuction;
@@ -173,14 +171,14 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
         uint256 royaltyFeeAmount = 0;
         if (auctions[_auctionId].royalty) {
-            royaltyFeeAmount = amount.mul(royaltyFee).div(10000);
+            royaltyFeeAmount = amount.mul(royaltiesByToken[auctions[_auctionId].tokenId].fee).div(10000);
         }
         uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
 
         IERC20(stableERC20).transferFrom(msg.sender, address(this), feeAmount);
         IERC20(stableERC20).transferFrom(msg.sender, auctions[_auctionId].owner, amountAfterFee);
         if (royaltyFeeAmount > 0) {
-            IERC20(stableERC20).transferFrom(msg.sender, royaltiesByToken[auctions[_auctionId].tokenId], royaltyFeeAmount);
+            IERC20(stableERC20).transferFrom(msg.sender, royaltiesByToken[auctions[_auctionId].tokenId].wallet, royaltyFeeAmount);
         }
         IDigiNFT(digiERC271).transferFrom(address(this), msg.sender, auctions[_auctionId].tokenId);
         
@@ -210,13 +208,13 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
         uint256 royaltyFeeAmount = 0;
         if (auctions[_auctionId].royalty) {
-            royaltyFeeAmount = amount.mul(royaltyFee).div(10000);
+            royaltyFeeAmount = amount.mul(royaltiesByToken[auctions[_auctionId].tokenId].fee).div(10000);
         }
         uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
 
         IERC20(stableERC20).transfer(auctions[_auctionId].owner, amountAfterFee);
         if (royaltyFeeAmount > 0) {
-            IERC20(stableERC20).transfer(royaltiesByToken[auctions[_auctionId].tokenId], royaltyFeeAmount);
+            IERC20(stableERC20).transfer(royaltiesByToken[auctions[_auctionId].tokenId].wallet, royaltyFeeAmount);
         }
         IDigiNFT(digiERC271).transferFrom(address(this), highestOffers[_auctionId].buyer, auctions[_auctionId].tokenId);
 
