@@ -79,9 +79,10 @@ contract DigiMarket is Ownable, ReentrancyGuard {
     function setRoyaltyForToken(uint256 _tokenId, address beneficiary, uint256 _fee) external {
         require(msg.sender == IERC721(digiERC721).ownerOf(_tokenId), "DigiMarket: Not the owner");
         require(AccessControl(digiERC721).hasRole(keccak256("MINTER"), msg.sender), "DigiMarker: Not minter");
+        require(lastSaleByToken[digiERC721][_tokenId] == 0, "DigiMarket: Auction already created");
         royaltiesByToken[_tokenId] = Royalty({
             wallet: beneficiary,
-            fee: _fee,
+            fee: _fee
         });
     }
 

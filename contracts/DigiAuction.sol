@@ -90,6 +90,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     function setRoyaltyForToken(uint256 _tokenId, address beneficiary, uint256 _fee) external {
         require(msg.sender == IERC721(digiERC271).ownerOf(_tokenId), "DigiAuction: Not the owner");
         require(AccessControl(digiERC271).hasRole(keccak256("MINTER"), msg.sender), "DigiAuction: Not minter");
+        require(lastAuctionByToken[_tokenId] == 0, "DigiAuction: Auction already created");
         royaltiesByToken[_tokenId] = Royalty({
             wallet: beneficiary,
             fee: _fee
