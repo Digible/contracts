@@ -4,13 +4,16 @@ pragma experimental ABIEncoderV2;
 import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 import "../node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../node_modules/@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../node_modules/@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../node_modules/@openzeppelin/contracts/access/AccessControl.sol";
 
 contract DigiMarket is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeMath for uint8;
+    using SafeERC20 for ERC20;
 
     uint256 BIGNUMBER = 10 ** 18;
 
@@ -159,11 +162,11 @@ contract DigiMarket is Ownable, ReentrancyGuard {
         }
         uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
 
-        IERC20(stableERC20).transferFrom(msg.sender, address(this), feeAmount);
-        IERC20(stableERC20).transferFrom(msg.sender, sales[_saleId].owner, amountAfterFee);
+        ERC20(stableERC20).safeTransferFrom(msg.sender, address(this), feeAmount);
+        ERC20(stableERC20).safeTransferFrom(msg.sender, sales[_saleId].owner, amountAfterFee);
     
         if (royaltyFeeAmount > 0) {
-            IERC20(stableERC20).transferFrom(msg.sender, royaltiesByToken[sales[_saleId].tokenId].wallet, royaltyFeeAmount);
+            ERC20(stableERC20).safeTransferFrom(msg.sender, royaltiesByToken[sales[_saleId].tokenId].wallet, royaltyFeeAmount);
         }
         IERC721(sales[_saleId].tokenAddress).transferFrom(sales[_saleId].owner, msg.sender, sales[_saleId].tokenId);
         
@@ -180,7 +183,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
         uint256 total = IERC20(stableERC20).balanceOf(address(this));
         
         for (uint8 i = 0; i < feesDestinators.length; i++) {
-            IERC20(stableERC20).transfer(
+            ERC20(stableERC20).safeTransfer(
                 feesDestinators[i],
                 total.mul(feesPercentages[i]).div(100)
             );
