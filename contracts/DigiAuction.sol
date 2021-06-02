@@ -27,7 +27,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     event CreatedAuction(uint256 auctionId, address indexed wallet, uint256 tokenId, uint256 created);
     event CanceledAuction(uint256 auctionId, address indexed wallet, uint256 tokenId, uint256 created);
     event NewHighestOffer(uint256 indexed auctionId, address indexed wallet, uint256 amount, uint256 created);
-    event DirectBuyed(uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
+    event DirectBuyed(uint256 indexed tokenId, uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
     event Claimed(uint256 indexed tokenId, uint256 auctionId, address indexed wallet, uint256 amount, uint256 created);
     event Log(uint256 data);
 
@@ -91,6 +91,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         require(msg.sender == IERC721(digiERC271).ownerOf(_tokenId), "DigiAuction: Not the owner");
         require(AccessControl(digiERC271).hasRole(keccak256("MINTER"), msg.sender), "DigiAuction: Not minter");
         require(lastAuctionByToken[_tokenId] == 0, "DigiAuction: Auction already created");
+        require(royaltiesByToken[_tokenId].wallet == address(0), "DigiMarket: Royalty already setted");
         royaltiesByToken[_tokenId] = Royalty({
             wallet: beneficiary,
             fee: _fee
@@ -190,7 +191,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
         _returnPreviousOffer(_auctionId);
 
-        emit DirectBuyed(_auctionId, msg.sender, auctions[_auctionId].fixedPrice, timeNow);
+        emit DirectBuyed(auctions[_auctionId].tokenId, _auctionId, msg.sender, auctions[_auctionId].fixedPrice, timeNow);
     }
 
     /**
@@ -243,10 +244,10 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     */
     function cancel(uint256 _auctionId)
         public
-        ended(_auctionId)
     {
         require(auctions[_auctionId].owner == msg.sender, 'DigiAuction: User is not the token owner');
         require(highestOffers[_auctionId].buyer == address(0x0), "DigiAuction: Ended but has winner");
+        require(auctions[_auctionId].buyed == false, "DigiAuction: Already buyed");
 
         uint256 timeNow = _getTime();
 
