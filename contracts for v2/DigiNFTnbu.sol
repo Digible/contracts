@@ -172,7 +172,11 @@ function setPhysminterRole(address wallet, bool canPhysmint) public {
         return super.supportsInterface(interfaceId);
     }
     
-    
+    function setTokenUri(uint256 tokenId, string memory newTokenURI_metadata) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), 'DigiNFT: Only for role DEFAULT_ADMIN_ROLE');
+        require(_exists(tokenId), "ERC721Metadata: Image set of nonexistent token");
+         _setTokenURI(tokenId, newTokenURI_metadata);
+    }
     
         /** @dev
      * Commented Code for BaseURI functionality
@@ -196,3 +200,4 @@ function setPhysminterRole(address wallet, bool canPhysmint) public {
  
 
 }
+
