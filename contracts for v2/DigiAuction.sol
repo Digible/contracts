@@ -1,13 +1,15 @@
-pragma solidity 0.6.5;
+pragma solidity 0.8.9;
 pragma experimental ABIEncoderV2;
 
-import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
-import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
-import "../node_modules/@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../node_modules/@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "../node_modules/@openzeppelin/contracts/access/AccessControl.sol";
-import "./IDigiNFT.sol";
+
+
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/IERC721.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/AccessControl.sol";
+import "https://github.com/Digible/contracts/blob/contractsV2/contracts%20for%20v2/IDigiNFT.sol";
 
 contract DigiAuction is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
