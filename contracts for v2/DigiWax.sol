@@ -26,8 +26,9 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
     bytes32 private s_keyHash;
     uint256 private s_fee;
     address private _linkAddress;
-    address private _nftContractAddress;
-    
+    address private _digiKeyAddress;
+
+    mapping (bytes32 => address) _nftContractAddress_by_requestId_map;
     mapping (uint256 => string) private _boxName_by_packId_map;
     mapping (string => bytes32) private _requestId_by_boxName_map;
     mapping (uint256 => bytes32) private _requestId_by_packId_map;
@@ -46,12 +47,19 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
     mapping (bytes32 => bool) private _requestIdDead_map;
     mapping (bytes32 => address[]) private _participantWallets_by_requestId_map;
     mapping (uint256 => address[]) private _waxbroken_participantWallet_Arr_by_packId_map;
-    
+    mapping (bytes32 => mapping(address=>bool)) _walletSubscribed_by_requestId_map;
+    mapping (bytes32 => mapping(uint =>bool)) _digikeyTokenIdEnabled_by_requestId_map;
+    mapping (bytes32 => bool) _generalSubscriptionOpen_by_requestId_map;
+    mapping (bytes32 => bool) _digikeySubscriptionOpen_by_requestId_map;
     
     event RandomnessRequested (bytes32 indexed requestId, string indexed setName);
     event RandomnessReceived (bytes32 indexed requestId, uint256 indexed result);
     event PackWaxSealBroken (bytes32 indexed requestId, uint256 indexed packId);
     event PackWaxSealSet (bytes32 indexed requestId, uint256 indexed packId);
+    event WalletSubscribed(bytes32 indexed requestId, address wallet, bool usedKey);
+    
+
+
 
      /**
      * @notice Constructor uses one NFT contrtact address and inherits VRFConsumerBase
@@ -64,7 +72,9 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
      * @dev   Fee:        0.1 LINK (100000000000000000)
      * 
      * @dev Network: POLYGON MUMBAI:	
-     *           nftContractAddress: 0x2050ebd262Db421De662607A05be26930Edbb8C8            
+     *           nftContractAddress: 0x2050ebd262Db421De662607A05be26930Edbb8C8
+                                     0x74980E3A1323DE715BD660f9f8D263ED8B631D92;    
+
      *           VRF Coordinator	0x8C7382F9D8f56b33781fE506E897a4F1e2d17255
      *           LINK Token	0x326C977E6efc84E512bB9C30f76E30c160eD06FB
      *           Key Hash	0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4
@@ -93,7 +103,6 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
        constructor() VRFConsumerBase(0x8C7382F9D8f56b33781fE506E897a4F1e2d17255, 0x326C977E6efc84E512bB9C30f76E30c160eD06FB) public 
     {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender); 
-        _nftContractAddress = 0x2050ebd262Db421De662607A05be26930Edbb8C8;
         _linkAddress = 0x326C977E6efc84E512bB9C30f76E30c160eD06FB;
         s_keyHash = 0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4;
         s_fee = 100000000000000;
@@ -114,25 +123,30 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
     // }
 
 
-    function createBox(uint256[] memory tokenIds, uint256  numberOfPacks, string memory boxName, address tokenOwner) public returns (bytes32 requestId) {
+    function createBox(address nftContractAddress, uint256[] memory tokenIds, uint256  numberOfPacks, string memory boxName, address tokenOwner, address digiKeyContractAddress, uint[] memory digiKeyTokenIds) public returns (bytes32 requestId) {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "DigiWax: Only for role DEFAULT_ADMIN_ROLE");
         require(!_boxnameTaken_map[boxName], "DigiWax: Set name already taken, please chose another");
         require(tokenIds.length % numberOfPacks == 0, "Digiwax: Number of tokens must be evenly divisible into the number of packs.");
         require(LINK.balanceOf(address(this)) >= s_fee, "Digiwax: Not enough LINK to offer oralce");
-        require (IERC721(_nftContractAddress).isApprovedForAll(msg.sender, address (this)), "ERC721: Not Approved - use approveForAll");
+        require (IERC721(nftContractAddress).isApprovedForAll(msg.sender, address (this)), "ERC721: Not Approved - use approveForAll");
         //@dev ensure that new tokens are not already not in packs
         for (uint256 i = 0; i < tokenIds.length; i++){
             require(!_tokenPacked_by_tokenId_map[tokenIds[i]], "Token already in pack");
         }
         
         _boxnameTaken_map[boxName] = true;
+        //@dev GeneratesRequestId here:
         requestId = requestRandomness(s_keyHash, s_fee);
+
         _originalOwner_by_requestId_map[requestId] = tokenOwner;
         _requestId_by_boxName_map[boxName] = requestId;
         _qtyofPacks_by_requestId_map[requestId] = numberOfPacks;
+        _nftContractAddress_by_requestId_map[requestId] = nftContractAddress;
         _tokensArr_by_requestId_map[requestId]  = tokenIds;
         uint256 _currentPackId = _packIDs.current();
         _startingpack_by_requestId_map[requestId] = _currentPackId;
+        _digiKeyAddress = digiKeyContractAddress;
+        enableDigikeysByRequestId(requestId, digiKeyTokenIds);
        
         for (uint256 i = _currentPackId; i < _currentPackId + numberOfPacks ; i++){
             _boxName_by_packId_map[i] = boxName;
@@ -143,11 +157,23 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
        
         //@dev !! WITHDRAWS TOKENS TO SEAL IN PACK
         for (uint256 i = 0; i < tokenIds.length; i++){
-        IERC721(_nftContractAddress).safeTransferFrom(tokenOwner, address(this), tokenIds[i]);
+        IERC721(nftContractAddress).safeTransferFrom(tokenOwner, address(this), tokenIds[i]);
             _tokenPacked_by_tokenId_map[tokenIds[i]] = true;
             }
         
         emit RandomnessRequested(requestId, boxName);
+    }
+
+
+//@dev admin can add keys
+function enableDigikeysByRequestId(bytes32 requestId, uint[] memory digiKeyTokenIds) public  {
+      require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "DigiWax: Only for role DEFAULT_ADMIN_ROLE");
+      require(digiKeyTokenIds.length > 0, "Digiwax: Empty Token List");
+      require(_participantWallets_by_requestId_map[requestId].length < _tokensArr_by_requestId_map[requestId].length, "Digiwax: No More Spots Left");
+       
+        for (uint256 i = 0; i < digiKeyTokenIds.length; i++){
+         _digikeyTokenIdEnabled_by_requestId_map[requestId][digiKeyTokenIds[i]] = true;
+        }  
     }
     
     //@undos all packs in box and returns NFTs to original owner
@@ -162,29 +188,57 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
           uint256[] memory tokenIds = getTokensArrOriginalOrder(requestId);
           
          for (uint256 i = 0; i < tokenIds.length; i++){
-            IERC721(_nftContractAddress).safeTransferFrom(address(this), _originalOwner_by_requestId_map[requestId], tokenIds[i]);
+            IERC721(_nftContractAddress_by_requestId_map[requestId]).safeTransferFrom(address(this), _originalOwner_by_requestId_map[requestId], tokenIds[i]);
             _tokenPacked_by_tokenId_map[tokenIds[i]] = false;
         }
         _requestIdDead_map[requestId] = true;
     }
     
-    
+    function updateGeneralSubscriptionByRequestId(bytes32 requestId, bool isOpen) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), 'DigiWax: Only for role DEFAULT_ADMIN_ROLE');
+        _generalSubscriptionOpen_by_requestId_map[requestId] = isOpen;
+    }
+
+     function updateDigikeySubscriptionByRequestId(bytes32 requestId, bool isOpen) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), 'DigiWax: Only for role DEFAULT_ADMIN_ROLE');
+        _digikeySubscriptionOpen_by_requestId_map[requestId] = isOpen;
+    }
+
+
+
     function subscribeToBoxByName(string memory boxName, address subscriber) public returns (bool){
          require(_boxnameTaken_map[boxName], "Digiwax: No such box name");
-        return subscribeToBoxByRequestId(getRequestIdByBoxName(boxName), subscriber);
+        return subscribeWalletToBoxByRequestId(getRequestIdByBoxName(boxName), subscriber);
     }
     
+    function subscribeToBoxByRequestId(bytes32 requestId) public returns (bool){
+       return subscribeWalletToBoxByRequestId(requestId, msg.sender);
+    }
     
     //@dev This is where wallets enter the box participation
-    function subscribeToBoxByRequestId (bytes32 requestId, address subscriber ) public returns (bool){
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), 'DigiWax: Only for role DEFAULT_ADMIN_ROLE');
+    function subscribeWalletToBoxByRequestId (bytes32 requestId, address subscriber ) public returns (bool){
+        require(_generalSubscriptionOpen_by_requestId_map[requestId], "Digiwax: General Subscription is not open yet!");
+        require(!_walletSubscribed_by_requestId_map[requestId][subscriber] || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "DigiWax: Wallet Already Subscribed");
         require(_participantWallets_by_requestId_map[requestId].length < _tokensArr_by_requestId_map[requestId].length, "Digiwax: No More Spots Left");
         _participantWallets_by_requestId_map[requestId].push(subscriber);
+        _walletSubscribed_by_requestId_map[requestId][subscriber] =true;
+        emit WalletSubscribed(requestId, subscriber, false);
         return true;
     }
-    
-    
-    
+
+// @dev this is where wallets enter using digiKey
+    function subscribeWalletToBoxByRequestIdUsingKey (bytes32 requestId, address subscriber, uint digikeyTokenId ) public returns (bool){
+        require(_digikeySubscriptionOpen_by_requestId_map[requestId], "Digiwax: Key Subscription is not open yet!");
+        require(_digikeyTokenIdEnabled_by_requestId_map[requestId][digikeyTokenId], "DigiWax: Key was already used or non-existant");
+        require(_participantWallets_by_requestId_map[requestId].length < _tokensArr_by_requestId_map[requestId].length, "Digiwax: No More Spots Left");
+        require (IERC721(_digiKeyAddress).ownerOf(digikeyTokenId) == subscriber, "Digiwax: Subscriber not owner of the Key");
+        _participantWallets_by_requestId_map[requestId].push(subscriber);
+        _digikeyTokenIdEnabled_by_requestId_map[requestId][digikeyTokenId] = false;
+        emit WalletSubscribed(requestId, subscriber, true);
+        return true;
+    }
+
+ 
     
      /**
      * @notice Callback function used by VRF Coordinator to return the random number
@@ -254,7 +308,7 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
         
          for (uint256 i = 0; i < qtyTokens; i++){
             wallets[i] = ( _participantWallets_by_requestId_map[requestId][i+shift]);
-            IERC721(_nftContractAddress).safeTransferFrom(address(this), wallets[i], shuffledTokensArr[i]);
+            IERC721(_nftContractAddress_by_requestId_map[requestId]).safeTransferFrom(address(this), wallets[i], shuffledTokensArr[i]);
             _tokenPacked_by_tokenId_map[shuffledTokensArr[i]] = false;
         }
        
@@ -275,7 +329,8 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
         }
         return getShuffledOrderAndPackCountByRequestId(requestId);
    }
-   
+
+
    
    function getShuffledOrderAndPackCountByRequestId (bytes32 requestId) public view returns (uint256[] memory, uint256 ) {
         for (uint256 i = _startingpack_by_requestId_map[requestId]; i < _startingpack_by_requestId_map[requestId] + _qtyofPacks_by_requestId_map[requestId]; i++){
@@ -332,7 +387,7 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
    }
    
    
-    function getTotalPacks() public view returns(uint256){
+    function getTotalPacks() external view returns(uint256){
         return _packIDs.current() - 1; 
     }
    
@@ -346,6 +401,12 @@ contract DigiWaxPacks is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.send
        require (!_packWaxSealed_map[packId], "Wax Not Broken On Pack Yet");  
        return _waxbroken_participantWallet_Arr_by_packId_map[packId][itemNumber];
    }
+
+   function getEnabledDigiKeysRequestId(bytes32 requestId, uint tokenId) external view returns(bool){
+       return _digikeyTokenIdEnabled_by_requestId_map[requestId][tokenId];
+   }
+
+  
    
 
    function withdrawLink() public onlyOwner {
