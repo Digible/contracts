@@ -37,8 +37,8 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     INTERNAL ACCOUNTING
     *******************/
     address public stakeERC20;
-    address public digiERC271;
-    address public stableERC20;
+
+    
     address[] public feesDestinators;
     uint256[] public feesPercentages;
 
@@ -47,18 +47,21 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     mapping (uint256 => Auction) public auctions;
     mapping (uint256 => bool) public claimedAuctions;
     mapping (uint256 => Offer) public highestOffers;
-    mapping (uint256 => uint256) public lastAuctionByToken;
-    mapping (uint256 => Royalty) public royaltiesByToken;
+    mapping (address => mapping (uint256 => uint256)) public lastAuctionByTokenByContract;
+    mapping (address => mapping ( uint256 => Royalty)) public royaltiesByTokenByContract;
+
     struct Royalty {
         uint256 fee;
         address wallet;
     }
 
     struct Auction {
+        address nftContractAddress;
         uint256 tokenId;
         address owner;
         uint256 minPrice;
         uint256 fixedPrice;
+        address paymentCurrency;
         bool buyed;
         bool royalty;
         uint256 endDate;
@@ -72,29 +75,30 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
     /******************
     PUBLIC FUNCTIONS
+
+    TEST $DIGI ROPSTEN 0xa408e53a6484f8bc2db5bd1c8471353e0958b691
+    TEST $DIGI MUMBAI POLYGON 0x03d390af242c8a8a5340489f2d2649e859d7ec2f
+    TEST $USDC MUMBAI POLYGON 0xdcf513f3e5358467b1a4ec1a78411169a1fdc5f3
+
+
     *******************/
     constructor(
-        address _stakeERC20,
-        address _digiERC271,
-        address _stableERC20
+        address _stakeERC20    //@dev required digi to hold to make auction  
+      
     )
         public
     {
-        require(address(_stakeERC20) != address(0)); 
-        require(address(_digiERC271) != address(0));
-        require(address(_stableERC20) != address(0));
-
-        stakeERC20 = _stakeERC20;
-        digiERC271 = _digiERC271;
-        stableERC20 = _stableERC20;
+        require(address(_stakeERC20) != address(0));        
+        
+        stakeERC20 = _stakeERC20;   
+   
     }
 
-    function setRoyaltyForToken(uint256 _tokenId, address beneficiary, uint256 _fee) external {
-        require(msg.sender == IERC721(digiERC271).ownerOf(_tokenId), "DigiAuction: Not the owner");
-        require(AccessControl(digiERC271).hasRole(keccak256("MINTER"), msg.sender), "DigiAuction: Not minter");
-        require(lastAuctionByToken[_tokenId] == 0, "DigiAuction: Auction already created");
-        require(royaltiesByToken[_tokenId].wallet == address(0), "DigiMarket: Royalty already setted");
-        royaltiesByToken[_tokenId] = Royalty({
+    function setRoyaltyForToken(address nftContractAddress, uint256 _tokenId, address beneficiary, uint256 _fee) external {
+        require(msg.sender == IERC721(nftContractAddress).ownerOf(_tokenId), "DigiAuction: Not the owner");
+        require(lastAuctionByTokenByContract[nftContractAddress][_tokenId] == 0, "DigiAuction: Auction already created");
+        require(royaltiesByTokenByContract[nftContractAddress][_tokenId].wallet == address(0), "DigiAuction: Royalty already set");
+        royaltiesByTokenByContract[nftContractAddress][_tokenId] = Royalty({
             wallet: beneficiary,
             fee: _fee
         });
@@ -104,31 +108,36 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     * @dev User deposits DIGI NFT for auction.
     */
     function createAuction(
+        address _nftContractAddress,
         uint256 _tokenId,
         uint256 _minPrice,
         uint256 _fixedPrice,
+        address _paymentCurrency,
         uint256 _duration
     )
         public
         requiredAmount(msg.sender, digiAmountRequired)
         returns (uint256)
     {
-        IDigiNFT(digiERC271).transferFrom(msg.sender, address(this), _tokenId);
+        require(_paymentCurrency != address(0));
+        IDigiNFT(_nftContractAddress).transferFrom(msg.sender, address(this), _tokenId);
 
         uint256 timeNow = _getTime();
         uint256 newAuction = auctionCount;
         auctionCount += 1;
 
         auctions[newAuction] = Auction({
+            nftContractAddress: _nftContractAddress,
             tokenId: _tokenId,
             owner: msg.sender,
             minPrice: _minPrice,
             fixedPrice: _fixedPrice,
+            paymentCurrency: _paymentCurrency,
             buyed: false,
-            royalty: royaltiesByToken[_tokenId].wallet != address(0),
+            royalty: royaltiesByTokenByContract[_nftContractAddress][_tokenId].wallet != address(0),
             endDate: timeNow + _duration
         });
-        lastAuctionByToken[_tokenId] = newAuction;
+        lastAuctionByTokenByContract[_nftContractAddress][_tokenId] = newAuction;
 
         emit CreatedAuction(newAuction, msg.sender, _tokenId, timeNow);
 
@@ -145,7 +154,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         minPrice(_auctionId, _amount)
         newHighestOffer(_auctionId, _amount)
     {
-        IERC20(stableERC20).transferFrom(msg.sender, address(this), _amount);
+        IERC20(auctions[_auctionId].paymentCurrency).transferFrom(msg.sender, address(this), _amount);
 
         _returnPreviousOffer(_auctionId);
 
@@ -167,24 +176,26 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         notClaimed(_auctionId)
         inProgress(_auctionId)
     {
-        require(IERC20(stableERC20).balanceOf(msg.sender) > auctions[_auctionId].fixedPrice, 'DigiAuction: User does not have enough balance');
+        require(IERC20(auctions[_auctionId].paymentCurrency).balanceOf(msg.sender) > auctions[_auctionId].fixedPrice, 'DigiAuction: User does not have enough balance');
         require(auctions[_auctionId].fixedPrice > 0, 'DigiAuction: Direct buy not available');
         
         uint amount = auctions[_auctionId].fixedPrice;
         uint256 feeAmount = amount.mul(purchaseFee).div(10000);
+        address _nftContractAddress = auctions[_auctionId].nftContractAddress;
+        uint _tokenId = auctions[_auctionId].tokenId;
 
         uint256 royaltyFeeAmount = 0;
         if (auctions[_auctionId].royalty) {
-            royaltyFeeAmount = amount.mul(royaltiesByToken[auctions[_auctionId].tokenId].fee).div(10000);
+            royaltyFeeAmount = amount.mul(royaltiesByTokenByContract[_nftContractAddress][_tokenId].fee).div(10000);
         }
         uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
 
-        IERC20(stableERC20).transferFrom(msg.sender, address(this), feeAmount);
-        IERC20(stableERC20).transferFrom(msg.sender, auctions[_auctionId].owner, amountAfterFee);
+        IERC20(auctions[_auctionId].paymentCurrency).transferFrom(msg.sender, address(this), feeAmount);
+        IERC20(auctions[_auctionId].paymentCurrency).transferFrom(msg.sender, auctions[_auctionId].owner, amountAfterFee);
         if (royaltyFeeAmount > 0) {
-            IERC20(stableERC20).transferFrom(msg.sender, royaltiesByToken[auctions[_auctionId].tokenId].wallet, royaltyFeeAmount);
+            IERC20(auctions[_auctionId].paymentCurrency).transferFrom(msg.sender, royaltiesByTokenByContract[_nftContractAddress][_tokenId].wallet, royaltyFeeAmount);
         }
-        IDigiNFT(digiERC271).transferFrom(address(this), msg.sender, auctions[_auctionId].tokenId);
+        IDigiNFT(auctions[_auctionId].nftContractAddress).transferFrom(address(this), msg.sender, auctions[_auctionId].tokenId);
         
         uint256 timeNow = _getTime();
         auctions[_auctionId].buyed = true;
@@ -209,18 +220,20 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         uint256 timeNow = _getTime();
         uint256 amount = highestOffers[_auctionId].offer;
         uint256 feeAmount = amount.mul(purchaseFee).div(10000);
+        address _nftContractAddress = auctions[_auctionId].nftContractAddress;
+        uint _tokenId = auctions[_auctionId].tokenId;
 
         uint256 royaltyFeeAmount = 0;
         if (auctions[_auctionId].royalty) {
-            royaltyFeeAmount = amount.mul(royaltiesByToken[auctions[_auctionId].tokenId].fee).div(10000);
+            royaltyFeeAmount = amount.mul(royaltiesByTokenByContract[_nftContractAddress][_tokenId].fee).div(10000);
         }
         uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
 
-        IERC20(stableERC20).transfer(auctions[_auctionId].owner, amountAfterFee);
+        IERC20(auctions[_auctionId].paymentCurrency).transfer(auctions[_auctionId].owner, amountAfterFee);
         if (royaltyFeeAmount > 0) {
-            IERC20(stableERC20).transfer(royaltiesByToken[auctions[_auctionId].tokenId].wallet, royaltyFeeAmount);
+            IERC20(auctions[_auctionId].paymentCurrency).transfer(royaltiesByTokenByContract[_nftContractAddress][_tokenId].wallet, royaltyFeeAmount);
         }
-        IDigiNFT(digiERC271).transferFrom(address(this), highestOffers[_auctionId].buyer, auctions[_auctionId].tokenId);
+        IDigiNFT(auctions[_auctionId].nftContractAddress).transferFrom(address(this), highestOffers[_auctionId].buyer, auctions[_auctionId].tokenId);
 
         claimedAuctions[_auctionId] = true;
 
@@ -230,11 +243,11 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     /**
     * @dev Send all the acumulated fees for one token to the fee destinators.
     */
-    function withdrawAcumulatedFees() public {
-        uint256 total = IERC20(stableERC20).balanceOf(address(this));
+    function withdrawAcumulatedFees(address _currency) public {
+        uint256 total = IERC20(_currency).balanceOf(address(this));
         
         for (uint8 i = 0; i < feesDestinators.length; i++) {
-            IERC20(stableERC20).transfer(
+            IERC20(_currency).transfer(
                 feesDestinators[i],
                 total.mul(feesPercentages[i]).div(100)
             );
@@ -255,7 +268,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
         auctions[_auctionId].endDate = timeNow;
 
-        IDigiNFT(digiERC271).transferFrom(
+        IDigiNFT(auctions[_auctionId].nftContractAddress).transferFrom(
             address(this),
             auctions[_auctionId].owner,
             auctions[_auctionId].tokenId
@@ -294,13 +307,23 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         feesPercentages = _percentages;
     }
 
+
+    //@dev set digi requirement using lots of 0s    
+    function setDigiRequirement(uint digis1018) public onlyOwner()  { 
+       digiAmountRequired = digis1018; 
+    }
+
+    function setDigiRequirementHuman(uint humanQty) public onlyOwner() {
+        setDigiRequirement(humanQty * (BIGNUMBER));
+    }
+
     /******************
     PRIVATE FUNCTIONS
     *******************/
     function _returnPreviousOffer(uint256 _auctionId) internal {
         Offer memory currentOffer = highestOffers[_auctionId];
         if (currentOffer.offer > 0) {
-            IERC20(stableERC20).transfer(currentOffer.buyer, currentOffer.offer);
+            IERC20(auctions[_auctionId].paymentCurrency).transfer(currentOffer.buyer, currentOffer.offer);
         }
     }
 
