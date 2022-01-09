@@ -1,0 +1,153 @@
+{
+    "chain1": {
+        "chainID": "0x1",
+        "chainname": "Ethereum Mainnet",
+        "type": "mainnet",
+        "deployed_contracts": []
+    },
+    "chain2": {
+        "chainID": "0x3",
+        "chainname": "Ethereum Ropsten",
+        "type": "testnet",
+        "deployed_contracts": []
+    },
+    "chain3 ": {
+        "chainID": "0x2a",
+        "chainname": "Ethereum Kovan",
+        "type": "testnet",
+        "deployed_contracts": [
+            {
+                "DIGI Token": "0xD312460817A60128964bc16E56c4f47fB89F4F21"
+               
+            },
+          
+            {
+                "DigiNFTnbu1": "0x4e4e06dfB3aCD27e6a96fEc7458726EEc5b487d0"
+               
+            },
+            {
+                "DigiStake Pool1 - 100bps 500k Cap": "0x9E4c2c9422Df38732A7f6478aD4264F348028B59"
+            },
+
+            {
+                "DigiStake Pool2 - 50bps 1MM cap": "0xA9236786A06E5219d0184B648D484bB97413CdEE"
+            },
+
+            {
+                "DigiStake - Pool3 0 bps in out 1k cap": "0x4A20b2Af298C97cB1dCA9b46ECeCE408ABA53887"
+            }
+
+
+        ]
+    },
+    "chain4 ": {
+        "chainID": "0x89",
+        "chainname": "Polygon Mainnet",
+        "type": "mainnet",
+        "deployed_contracts": [
+            {
+                "DigiNFTnbu - internal": "0x13827F0d808a9cb0170e8759D9453D2B4C0d402e"
+            },
+            {
+                "DigiNFTnbu - public": "0x1eA016dcD53bA2EBe9DbD1C0418FF816b6FF9B25"
+            },
+            {
+                "DigiNFTnbu - internal-cube": "0x4D4475E5591c00525069c52f3489bE59b321ba64"
+            },
+            {
+                "DigiNFTnbuBulkMint - bulk-minting": "0x3ac6628CF17CF687b80E4E767222844c7b4b9b8d"
+            }
+        ]
+    },
+    "chain5 ": {
+        "chainID": "0xfa",
+        "chainname": "Fantom Opera Mainnet",
+        "type": "mainnet",
+        "deployed_contracts": [
+            {
+                "DigiNFTnbu1": "0x3CbF23c081fAA5419810ce0F6BC1ECb73006d848"
+            },
+            {
+                "DigiNFTnbu - public": "0xa408E53a6484F8bC2dB5Bd1c8471353e0958B691"
+            },
+            {
+                "DigiNFTnbu - internal-cube": "0x2AafE249aC0f8AA409D38B8504B7fa620dCC2BA1"
+            },
+            {
+                "DigiNFTnbu - Reserved": "0x4d8181f051E617642e233Be09Cea71Cc3308ffD4"
+            },
+            {
+                "DigiNFTnbuBulkMint - bulk-minting": "0xeCd7477a9c53b93b588ddD85bd9C605b390E3D11"
+            }
+        ]
+    },
+    "chain6 ": {
+        "chainID": "0x38",
+        "chainname": "BSC Mainnet",
+        "type": "mainnet",
+        "deployed_contracts": [
+            {
+                "DigiNFTnbu1 - internal": "0x3CbF23c081fAA5419810ce0F6BC1ECb73006d848"
+            }
+        ]
+    },
+    "chain7 ": {
+        "chainID": "0x19",
+        "chainname": "Cronos Mainnet",
+        "type": "",
+        "deployed_contracts": []
+    },
+    "chain8 ": {
+        "chainID": "0x13881",
+        "chainname": "Polygon Mumbai",
+        "type": "testnet",
+        "deployed_contracts": [
+            {
+                "DIGI Token": "0x03d390Af242C8a8a5340489f2D2649e859d7ec2f"
+            },
+            
+            {
+                "DigiNFTnbu1": "0x2050ebd262db421de662607a05be26930edbb8c8"
+            },
+
+            {
+                "DigiNFTnbu2 - digicube": "0xa4ACe9a3D90fbAe14a4b42698F480f4282a49A2d"
+            },
+
+            {
+                "DigiNFTnbu2 - digikey": "0xEe264772823271863b02761c023F8bAE1A5ee0F8"
+            },
+            
+            
+            {
+                "DigiNFTnbuBulkMint - bulk-minting": "0x6BC284B9D018fC7f8aC2B42Ea9590e17E4107ecF"
+            },
+
+            {
+                "DigiStake Pool1 - 100bps 500k Cap": "0x8aF9e6e0D874b61206859fEc46cEE9C066A29F7d"
+            },
+
+            {
+                "DigiStake Pool2 - 50bps 1MM cap": "0xA9236786A06E5219d0184B648D484bB97413CdEE"
+            },
+
+            {
+                "DigiStake - Pool3 0 bps in out 1k cap": "0x4A20b2Af298C97cB1dCA9b46ECeCE408ABA53887"
+            }
+
+
+
+
+        ]
+    },
+    "chain9 ": {
+        "chainID": "0x61",
+        "chainname": "BSC Testnet",
+        "type": "testnet",
+        "deployed_contracts": [
+            {
+                "DigiNFTnbu1": "0x2050ebd262db421de662607a05be26930edbb8c8"
+            }
+        ]
+    }
+}
