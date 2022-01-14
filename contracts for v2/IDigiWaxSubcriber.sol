@@ -8,8 +8,6 @@ contract IDigiWaxSubscriber{
     event BoxWaxSealSet (bytes32 indexed requestId, string indexed boxName);
     event WalletSubscribed(string indexed boxname, address wallet, bool usedKey);
     event BoxCreated(string indexed boxname, address boxCreator);
-
-    IERC20 public DIGI;  
     
     mapping (string => address) public boxOwner_map;
     
