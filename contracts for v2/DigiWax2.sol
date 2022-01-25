@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
-// @dev Digiwax Version 2 - packs NFTs minted from multiple smart contract by tokenId 🎁🎁🎁
+// @dev Digiwax Version 2c - packs NFTs minted from multiple smart contract by tokenId 🎁🎁🎁
 pragma solidity 0.8.11;
 import "https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFConsumerBase.sol";
 import "https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ChainlinkClient.sol";
-import "https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ConfirmedOwner.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/AccessControl.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/IERC721.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol";
 
-contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), ChainlinkClient, ERC721Holder {
+contract DigiWax is VRFConsumerBase, AccessControl, ChainlinkClient, ERC721Holder, ReentrancyGuard {
     using SafeMath for uint256; 
 
 
@@ -41,11 +41,11 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
     mapping (string => uint256) public accessPrice_by_boxName_map;
     mapping (string => address) public accessPriceContractAddress_by_boxName_map;    
    
-    mapping (string => address[]) private _nftContractAddressesArr_by_boxName_map;
-    mapping (string => uint256[]) private _tokensArr_by_boxName_map;
-    mapping (string => address[]) private _digiKeyAddressesArr_by_boxName_map;
-    mapping (string => uint256[]) private _digiKeyTokensArr_by_boxName_map;
-    mapping (string => mapping (address => mapping(uint256 => bool))) private _digiKeyAllowed_byBoxName_3map;  
+    mapping (string => address[]) public nftContractAddressesArr_by_boxName_map;
+    mapping (string => uint256[]) public tokensArr_by_boxName_map;
+    mapping (string => address[]) public digiKeyAddressesArr_by_boxName_map;
+    mapping (string => uint256[]) public digiKeyTokensArr_by_boxName_map;
+    mapping (string => mapping (address => mapping(uint256 => bool))) public digiKeyAllowed_byBoxName_3map;  
  
     mapping (string => address[]) public participantWallets_by_boxName_map; 
     mapping (string => mapping(address=>bool)) private _walletSubscribed_by_boxName_map;
@@ -56,7 +56,7 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
     mapping (bytes32 => address[]) private _shuffledAddresses_by_requestId_map;  
   
     mapping (bytes32 => bool) public  boxSealed_By_requestId_map;
-    mapping (string => bool) private _boxnameTaken_map;
+    mapping (string => bool) public boxnameTaken_map;
 
     mapping (bytes32=>uint256) private  _fullfilledRandomRequests_map;    
     
@@ -81,13 +81,13 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
                         address digiKeyContractAddress,  uint256 start_keyTokenId, uint256 end_keyTokenId,
                         address accessPriceContractAddress, uint256 accessPrice
                         )                         
-            public payable returns (bool) {
+            external payable returns (bool) {
 
         require(hasRole(WAXMAKER, msg.sender), "Only for WAXMAKER");
-        require(!_boxnameTaken_map[boxName], "Set name taken");    
+        require(!boxnameTaken_map[boxName], "Set name taken");    
         require(LINK.balanceOf(address(this)) >= s_fee, "Not enough LINK to offer oralce");
         require(DIGI.transferFrom(msg.sender, _digiFeeCollectorAddress, wax_fee_digi), "DIGI Fee XFer failed");      
-        _boxnameTaken_map[boxName] = true;
+        boxnameTaken_map[boxName] = true;
         boxOwner_map[boxName] = msg.sender;
         if(end_keyTokenId > 0) { enableDigikeys(boxName, digiKeyContractAddress, start_keyTokenId, end_keyTokenId); }  
         if(accessPrice > 0) {
@@ -104,21 +104,21 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
             public payable returns (bool) {
        
         require(boxOwner_map[boxName] == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "For Box Owner Only");
-        require(_boxnameTaken_map[boxName], "Box Does Not Exist");
+        require(boxnameTaken_map[boxName], "Box Does Not Exist");
 
         for (uint256 i = start_tokenId; i <= end_tokenId; i++) {
             require(IERC721(nftContractAddress).ownerOf(i) == msg.sender, "Not Owner");
             IERC721(nftContractAddress).safeTransferFrom(msg.sender, address(this), i);
-            _nftContractAddressesArr_by_boxName_map[boxName].push(nftContractAddress);
-            _tokensArr_by_boxName_map[boxName].push(i);
+            nftContractAddressesArr_by_boxName_map[boxName].push(nftContractAddress);
+            tokensArr_by_boxName_map[boxName].push(i);
         }             
         return true;    
     }
 
     // @dev - THIS IS WHERE WE REQUEST RANDOMNESS FROM THE CHAINLINK ORACLE
-    function sealWax (string memory boxName) public returns (bytes32){
+    function sealWax (string memory boxName) external returns (bytes32){
     
-        require(participantWallets_by_boxName_map[boxName].length == _tokensArr_by_boxName_map[boxName].length, "Participant count wrong");
+        require(participantWallets_by_boxName_map[boxName].length == tokensArr_by_boxName_map[boxName].length, "Participant count wrong");
         require(boxOwner_map[boxName] == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "For Box Owner Only");
         
         bytes32 requestId = requestRandomness(s_keyHash, s_fee); 
@@ -130,16 +130,16 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
         return requestId;                         
     }         
 
-    function breakWax_Box (string memory boxName)  public returns(address[] memory, uint256[] memory){
+    function breakWax_Box (string memory boxName)  external returns(address[] memory, uint256[] memory){
        
        require(boxOwner_map[boxName] == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "For Box Owner Only");
        require (!_requestIdDead_by_boxName_map[boxName], "Box was undone");   
-       require(_boxnameTaken_map[boxName], "No such box");  
+       require(boxnameTaken_map[boxName], "No such box");  
        require(oracleSpoke_by_boxName_map[boxName], "Oracle Hasn't Shuffled Box Yet");   
        bytes32 requestId = requestId_by_boxName_map[boxName];
 
        string memory boxName = _boxName_by_requestId_map[requestId];
-        uint256 qtyTokens = _tokensArr_by_boxName_map[boxName].length;
+        uint256 qtyTokens = tokensArr_by_boxName_map[boxName].length;
         require (!_requestIdDead_by_boxName_map[boxName], "Box was undone");        
         require(participantWallets_by_boxName_map[boxName].length == qtyTokens, "Participant count wrong");
         require(boxOwner_map[boxName] == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "For box owner only");
@@ -153,8 +153,8 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
   
         uint256[] memory tokenArr = new uint256[](qtyTokens);
         address[] memory addressArr = new address[](qtyTokens);
-        tokenArr = _tokensArr_by_boxName_map[boxName];
-        addressArr = _nftContractAddressesArr_by_boxName_map[boxName];
+        tokenArr = tokensArr_by_boxName_map[boxName];
+        addressArr = nftContractAddressesArr_by_boxName_map[boxName];
          
         for (uint256 i = 0; i < qtyTokens; i++) { 
            uint256 n =  randoms[i] % (qtyTokens - 1);
@@ -219,13 +219,13 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
       
        
         for (uint256 i = start_keyTokenId; i <= end_keyTokenId; i++) {
-            _digiKeyAddressesArr_by_boxName_map[boxName].push(digiKeyContractAddress);
-            _digiKeyTokensArr_by_boxName_map[boxName].push(i);         
-            _digiKeyAllowed_byBoxName_3map[boxName][digiKeyContractAddress][i] = true;
+            digiKeyAddressesArr_by_boxName_map[boxName].push(digiKeyContractAddress);
+            digiKeyTokensArr_by_boxName_map[boxName].push(i);         
+            digiKeyAllowed_byBoxName_3map[boxName][digiKeyContractAddress][i] = true;
         }  
     }
     
-    function updateSubscriptionsByBox(string memory boxName, bool isOpen_Gen, bool isOpen_Key) public {
+    function updateSubscriptionsByBox(string memory boxName, bool isOpen_Gen, bool isOpen_Key) external {
         require(boxOwner_map[boxName] == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "For Box Owner Only");     
         generalSubscriptionOpen_by_boxName_map[boxName] = isOpen_Gen;
           digikeySubscriptionOpen_by_boxName_map[boxName] = isOpen_Key;
@@ -233,22 +233,22 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
 
          
     //@undos all packs in box and returns NFTs to original owner
-    function undoBoxByName(string memory boxName) public returns (bool){
-        require(boxOwner_map[boxName] == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "For Box Owner Only");     
-        require(_boxnameTaken_map[boxName], "No such box name");
+    function undoBoxByName(string memory boxName) external returns (bool){
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "For Admin Only");     
+        require(boxnameTaken_map[boxName], "No such box name");
        
-        for (uint256 i = 0; i <  _tokensArr_by_boxName_map[boxName].length; i++) {
-            IERC721(_nftContractAddressesArr_by_boxName_map[boxName][i]).safeTransferFrom(address(this), boxOwner_map[boxName],  _tokensArr_by_boxName_map[boxName][i]);            
+        for (uint256 i = 0; i <  tokensArr_by_boxName_map[boxName].length; i++) {
+            IERC721(nftContractAddressesArr_by_boxName_map[boxName][i]).safeTransferFrom(address(this), boxOwner_map[boxName],  tokensArr_by_boxName_map[boxName][i]);            
         }
         _requestIdDead_by_boxName_map[boxName] = true; 
       return true;
     }  
     
     //@dev This is where wallets enter the box participation
-    function subscribeWalletToBoxByName (string memory boxName, address subscriber ) public returns (bool){
+    function subscribeWalletToBoxByName (string memory boxName, address subscriber ) external nonReentrant returns (bool){
         require(generalSubscriptionOpen_by_boxName_map[boxName], "General Subscription is not open yet!");
         require(!_walletSubscribed_by_boxName_map[boxName][subscriber] || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Wallet Already Subscribed");
-        require(participantWallets_by_boxName_map[boxName].length < _tokensArr_by_boxName_map[boxName].length, "No More Spots Left");
+        require(participantWallets_by_boxName_map[boxName].length < tokensArr_by_boxName_map[boxName].length, "No More Spots Left");
         IERC20 feeToken = IERC20(accessPriceContractAddress_by_boxName_map[boxName]);
         uint256 fee_amount = accessPrice_by_boxName_map[boxName].mul(access_fee_percentage).div(100);
         uint256 net_amount = accessPrice_by_boxName_map[boxName].mul(100 - access_fee_percentage).div(100);
@@ -264,48 +264,23 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
     }
 
 // @dev this is where wallets enter using digiKey
-    function subscribeWalletToBoxByRequestIdUsingKey (string memory boxName, address subscriber, address digiKeyContractAddress, uint digikeyTokenId ) public returns (bool){
+    function subscribeWalletToBoxByRequestIdUsingKey (string memory boxName, address subscriber, address digiKeyContractAddress, uint digikeyTokenId ) external nonReentrant returns (bool){
           
         require(digikeySubscriptionOpen_by_boxName_map[boxName], "Key Subscription is not open yet!");
-        require( _digiKeyAllowed_byBoxName_3map[boxName][digiKeyContractAddress][digikeyTokenId], "Key was already used or non-existant");
-        require(participantWallets_by_boxName_map[boxName].length < _tokensArr_by_boxName_map[boxName].length, "No More Spots Left");
+        require( digiKeyAllowed_byBoxName_3map[boxName][digiKeyContractAddress][digikeyTokenId], "Key was already used or non-existant");
+        require(participantWallets_by_boxName_map[boxName].length < tokensArr_by_boxName_map[boxName].length, "No More Spots Left");
         require (IERC721(digiKeyContractAddress).ownerOf(digikeyTokenId) == subscriber, "Subscriber not owner of the Key");
         participantWallets_by_boxName_map[boxName].push(subscriber);
-        _digiKeyAllowed_byBoxName_3map[boxName][digiKeyContractAddress][digikeyTokenId] = false;
+        digiKeyAllowed_byBoxName_3map[boxName][digiKeyContractAddress][digikeyTokenId] = false;
         emit WalletSubscribed(boxName, subscriber, true);
         return true;
     }
 
    
   
-   
-
-
-
-  //@dev ONLY OWNER FUNCTIONS
-   
-  
-    function setFeeAndKeyHash(uint256 fee, bytes32 keyHash) public onlyOwner {
-        s_fee = fee;
-        s_keyHash = keyHash;
-    }
-
-   function withdrawGas(address tokenContract)  public onlyOwner {    
-    
-    IERC20 token = IERC20(tokenContract);
-    require(token.transfer(msg.sender, token.balanceOf(address(this))), "Unable to transfer");
-  }
-
-    function setDigiFees(uint256 human_fee, uint256 human_percentage)  public onlyOwner {
-    wax_fee_digi = human_fee * BIGNUMBER;
-    access_fee_percentage = human_percentage;
-  }
-
-
-
-
-    function oraclize(string memory boxName, uint256 randomness) public onlyOwner {    
-    require(_boxnameTaken_map[boxName], "No such box");    
+    function oraclize(string memory boxName, uint256 randomness) external  {    
+     require(boxOwner_map[boxName] == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "For Box Owner Only"); 
+    require(boxnameTaken_map[boxName], "No such box");    
       bytes32 requestId = requestId_by_boxName_map[boxName];
       _fullfilledRandomRequests_map[requestId] = randomness;
         oracleSpoke_by_boxName_map[boxName] = true;
@@ -313,16 +288,34 @@ contract DigiWax is VRFConsumerBase, AccessControl, ConfirmedOwner(msg.sender), 
   }   
 
 
- //@dev gives more random numbers from number using chainlink best practices guide
-  
-   function expand(uint256 randomValue, uint256 n) public  pure returns (uint256[] memory expandedValues) {
-    expandedValues = new uint256[](n);
-    for (uint256 i = 0; i < n; i++) {
-        expandedValues[i] = uint256(keccak256(abi.encode(randomValue, i)));
-        }
-    return expandedValues;
 
-}
+
+  //@dev Admin only FUNCTIONS
+   
+  
+    function setFeeAndKeyHash(uint256 fee, bytes32 keyHash) external  {
+          require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin only");
+        s_fee = fee;
+        s_keyHash = keyHash;
+    }
+
+   function withdrawGas(address tokenContract)  external  {    
+         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin only");
+    
+    IERC20 token = IERC20(tokenContract);
+    require(token.transfer(msg.sender, token.balanceOf(address(this))), "Unable to transfer");
+  }
+
+    function setDigiFees(uint256 human_fee, uint256 human_percentage)  external  {
+          require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin only");
+    wax_fee_digi = human_fee * BIGNUMBER;
+    access_fee_percentage = human_percentage;
+  }
+
+
+
+
+
 
 
 }
