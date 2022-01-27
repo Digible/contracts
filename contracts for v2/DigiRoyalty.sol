@@ -7,7 +7,7 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contr
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol";
 
 // @dev DigiRoyalty V1.
-contract DigRoyalty is ReentrancyGuard {
+contract DigiRoyalty is ReentrancyGuard {
     using SafeMath for uint256;
     
     event RoyaltySet(address indexed nftContractAddress, uint256 tokenId, address indexed beneficiaryWallet, uint256 amount_bps);   
@@ -43,5 +43,7 @@ contract DigRoyalty is ReentrancyGuard {
           return saleAmount.mul(royaltiesByTokenByContractAddress[_nftContractAddress][_tokenId].amount_bps).div(10000); 
       
     } 
+
+
 
 }
