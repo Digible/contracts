@@ -1,0 +1,573 @@
+{
+	"compiler": {
+		"version": "0.8.10+commit.fc410830"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "previousAdminRole",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "newAdminRole",
+						"type": "bytes32"
+					}
+				],
+				"name": "RoleAdminChanged",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "sender",
+						"type": "address"
+					}
+				],
+				"name": "RoleGranted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "sender",
+						"type": "address"
+					}
+				],
+				"name": "RoleRevoked",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "DEFAULT_ADMIN_ROLE",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "digiWaxContractAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "requestId",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address[]",
+						"name": "wallets",
+						"type": "address[]"
+					}
+				],
+				"name": "bulkSubcribe",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "digiWaxContractAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "requestId",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "wallet",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "qty",
+						"type": "uint256"
+					}
+				],
+				"name": "bulkSubcribeWallet",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					}
+				],
+				"name": "getRoleAdmin",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "grantRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "hasRole",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "operator",
+						"type": "address"
+					}
+				],
+				"name": "makeAdmin",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "renounceRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "role",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "revokeRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes4",
+						"name": "interfaceId",
+						"type": "bytes4"
+					}
+				],
+				"name": "supportsInterface",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"getRoleAdmin(bytes32)": {
+					"details": "Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}."
+				},
+				"grantRole(bytes32,address)": {
+					"details": "Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role."
+				},
+				"hasRole(bytes32,address)": {
+					"details": "Returns `true` if `account` has been granted `role`."
+				},
+				"renounceRole(bytes32,address)": {
+					"details": "Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been revoked `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `account`."
+				},
+				"revokeRole(bytes32,address)": {
+					"details": "Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role."
+				},
+				"supportsInterface(bytes4)": {
+					"details": "See {IERC165-supportsInterface}."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"Documents/GitHub/contracts/contracts for v2/DigiWaxBulkSub.sol": "DigiWaxBulkSub"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"Documents/GitHub/contracts/contracts for v2/DigiWaxBulkSub.sol": {
+			"keccak256": "0x6e26b9f25a598d5c95b6d5fe33830a211bb608721ed5598ac98a48f1afc296ec",
+			"urls": [
+				"bzz-raw://9dab71cde19c309b32db4f7958a96bccb9393f4d9f09ee17d97f31fe43412bc6",
+				"dweb:/ipfs/QmXaENkDi3hdRh3Bb4BiSyGZSWdKn8m8NPtBCtN7cGY1au"
+			]
+		},
+		"https://github.com/Digible/contracts/blob/contractsV2/contracts%20for%20v2/DigiWax.sol": {
+			"keccak256": "0x5b9c9235f97fb48a1af369b0d087a762a32686ff17d7e5b043fd7408ccbaf1cd",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://3c29e9fdbd8509ee9fd9caa29d9d16097f0c834b3e3b76e28e55a38bb3880d4a",
+				"dweb:/ipfs/QmepXxYY1KetGUxmUL17iWFnnyfVLTwVnrPBVWUQVHJDRC"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/AccessControl.sol": {
+			"keccak256": "0xb9a137b317dc4806805f2259686186c0c053c32d80fe9c15ecdbf2eb1cf52849",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8910762bea89696c6dc68a63be98c6ddd597955f8a29418661cc99d0ce090663",
+				"dweb:/ipfs/Qmed14MXXFdNYE22bCuVy5XVAMKUo1DncY8BF8VkyrvXmh"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/IAccessControl.sol": {
+			"keccak256": "0x59ce320a585d7e1f163cd70390a0ef2ff9cec832e2aa544293a00692465a7a57",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://bb2c137c343ef0c4c7ce7b18c1d108afdc9d315a04e48307288d2d05adcbde3a",
+				"dweb:/ipfs/QmUxhrAQM3MM3FF5j7AtcXLXguWCJBHJ14BRdVtuoQc8Fh"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol": {
+			"keccak256": "0x0e9621f60b2faabe65549f7ed0f24e8853a45c1b7990d47e8160e523683f3935",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://287a2f8d5814dd0f05f22b740f18ca8321acc21c9bd03a6cb2203ea626e2f3f2",
+				"dweb:/ipfs/QmZRQv9iuwU817VuqkA2WweiaibKii69x9QxYBBEfbNEud"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/IERC721.sol": {
+			"keccak256": "0x516a22876c1fab47f49b1bc22b4614491cd05338af8bd2e7b382da090a079990",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://a439187f7126d31add4557f82d8aed6be0162007cd7182c48fd934dbab8f3849",
+				"dweb:/ipfs/QmRPLguRFvrRJS7r6F1bcLvsx6q1VrgjEpZafyeL8D7xZh"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/IERC721Receiver.sol": {
+			"keccak256": "0xd5fa74b4fb323776fa4a8158800fec9d5ac0fec0d6dd046dd93798632ada265f",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://33017a30a99cc5411a9e376622c31fc4a55cfc6a335e2f57f00cbf24a817ff3f",
+				"dweb:/ipfs/QmWNQtWTPhA7Lo8nbxbc8KFMvZwbFYB8fSeEQ3vuapSV4a"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/utils/ERC721Holder.sol": {
+			"keccak256": "0x0108bf6a6ebd5f96678bed33a35947537263f96766131ee91461fb6485805028",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ae2d274bf3d56a6d49a9bbd0a4871c54997a82551eb3eb1c0c39dc98698ff8bf",
+				"dweb:/ipfs/QmTT7ty5DPGAmRnx94Xu3TUDYGSPDVLN2bppJAjjedrg1e"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Context.sol": {
+			"keccak256": "0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6df0ddf21ce9f58271bdfaa85cde98b200ef242a05a3f85c2bc10a8294800a92",
+				"dweb:/ipfs/QmRK2Y5Yc6BK7tGKkgsgn3aJEQGi5aakeSPZvS65PV8Xp3"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Counters.sol": {
+			"keccak256": "0xf0018c2440fbe238dd3a8732fa8e17a0f9dce84d31451dc8a32f6d62b349c9f1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://59e1c62884d55b70f3ae5432b44bb3166ad71ae3acd19c57ab6ddc3c87c325ee",
+				"dweb:/ipfs/QmezuXg5GK5oeA4F91EZhozBFekhq5TD966bHPH18cCqhu"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Strings.sol": {
+			"keccak256": "0x32c202bd28995dd20c4347b7c6467a6d3241c74c8ad3edcbb610cd9205916c45",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8179c356adb19e70d6b31a1eedc8c5c7f0c00e669e2540f4099e3844c6074d30",
+				"dweb:/ipfs/QmWFbivarEobbqhS1go64ootVuHfVohBseerYy9FTEd1W2"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/introspection/ERC165.sol": {
+			"keccak256": "0xd10975de010d89fd1c78dc5e8a9a7e7f496198085c151648f20cba166b32582b",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://fb0048dee081f6fffa5f74afc3fb328483c2a30504e94a0ddd2a5114d731ec4d",
+				"dweb:/ipfs/QmZptt1nmYoA5SgjwnSgWqgUSDgm4q52Yos3xhnMv3MV43"
+			]
+		},
+		"https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/introspection/IERC165.sol": {
+			"keccak256": "0x447a5f3ddc18419d41ff92b3773fb86471b1db25773e07f877f548918a185bf1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://be161e54f24e5c6fae81a12db1a8ae87bc5ae1b0ddc805d82a1440a68455088f",
+				"dweb:/ipfs/QmP7C3CHdY9urF4dEMb9wmsp1wMxHF6nhA2yQE5SKiPAdy"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/Chainlink.sol": {
+			"keccak256": "0x3e133ddc69d0909fbe338c34b70cbf8dd262c70fd670b3632424c1858de25105",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6fbfa4cee3ce9fe3f5be6eda7e3304263d77b514be0bf5fadffa24d3f654ad2d",
+				"dweb:/ipfs/QmTQmA4AJ9NookAyTg9DP6Mem6X8WSHJ5WjQJvqhE8K9qV"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ChainlinkClient.sol": {
+			"keccak256": "0xa221ccfa4763977cc78c57e3a83d47f5aaf7c15535a2c20dba5f46af80fb3bd7",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ba0f668a6f55a546ac1fe7fbf8539878a62811c1b0606fb4fadafb62f661e853",
+				"dweb:/ipfs/QmTUmXvjWQno67W4CUdkVyTRAwSKWrko8EPjtizzavNVLJ"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ConfirmedOwner.sol": {
+			"keccak256": "0x99d0b0786fe368970009c703f2249bfbc56340ddf1a28b60d2915bb58c34cd72",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://af0371c1af45db651823b9a3d5af761b08243c78f105166342eee28de356c8dd",
+				"dweb:/ipfs/QmPnC9qNDKwJFd5unwLb9pxjrutoe8MWjm5EXHTxq2kJ4x"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ConfirmedOwnerWithProposal.sol": {
+			"keccak256": "0xa2f137a1d066795aeac76226e58f33c982278cdd34b4f09e5a2243d5a0924654",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://a73f185d79d82e6d9baa531d55ffb88c80def1f6187dff93d3df6b2cb5ab7187",
+				"dweb:/ipfs/QmVZEePJvcN1KxSTaD5rhKhaMBWHqs6ZeZ5s17Ft6mR5hJ"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFConsumerBase.sol": {
+			"keccak256": "0x778c9d88cd6d94ae866c1c3f5fec6022f07e39280d3b6d581c8cceb8a5ac4b1e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://a2fe7cac98f6c86e4e3ef299bb91f3917d4171548e39da72c7da392c9d5d5815",
+				"dweb:/ipfs/QmT8jh2DR1VU8554hGMbjX6BkACT96FZBETbN5KkStBvYP"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFRequestIDBase.sol": {
+			"keccak256": "0x2bf1168e8fe548fa990e0aeaf89ef90680f80aa31eeaf901f485df60de51d51b",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://79c72d66deaa4b0f251f3f0817f45ebceb71f5b4f94a86ac0e586de99f5af2b6",
+				"dweb:/ipfs/QmcHkApHm5CAynjajcCUYppaKJ9sNWGZTEcSs4tUK8B5K5"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/ChainlinkRequestInterface.sol": {
+			"keccak256": "0xa8adfbd0326c982c38ea3808a4da52f0a51807241787c4bd28235bbe86707c04",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://364e3be6190a68fbe84e4ede560af3ccede8d36e40e91378b4de042202c6e86a",
+				"dweb:/ipfs/QmNpCP9j3FhBd1hDofg1uMCYiXBKNTU95n1Lxbnnj12oxw"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/ENSInterface.sol": {
+			"keccak256": "0xe51365458d82233a55f5ad4492a3b6bf56332d21cad6b0a5f21b8a026fcfd6d0",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://40958fa820d41025822fe423111c74d5b8d0dfe1a30ae4fba4f6896a55fc2868",
+				"dweb:/ipfs/QmbwYCM5k6h43T6qQV8DEpUxv5uErVSTCD6Fqm5DMLDgNi"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/LinkTokenInterface.sol": {
+			"keccak256": "0xc7d7cd730d36825485ef4107d93c3ff18b9f3a5a00ea3d5988ba9a0bd70b10c5",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8cb1064885ecbcd9c3adba779e190cb4a538e5d4d15aeccb67d3376bdffc94bd",
+				"dweb:/ipfs/QmcQHK6ewve7tFi4XXK65JthQg4kQzApQikWcURJjGt4iQ"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/OperatorInterface.sol": {
+			"keccak256": "0x79a7c77b8f87be6ef02a566765077ed599724b060a209f34f8907eec5615da68",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://b6ed9275abc614a37a13f86c148f3a4341d955a6b52a1a655357505e0926caab",
+				"dweb:/ipfs/Qmaqgq3HiakdSBAe9NtGXYMxVFBjTkLbzyiiyjJUJ1g1M3"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/OracleInterface.sol": {
+			"keccak256": "0x3a86242e005bad9daf1b4794399a81ba373069355f38c8a07b58e57abc32513a",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ba8fbc2ccf2b3dfc8249306b7dc63624a4ec6f6ee43649d631f7363710c763b6",
+				"dweb:/ipfs/QmePqh8R8EZMygYkawshsWArTrVA8VCdamLGV6ZZsVJgTz"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/OwnableInterface.sol": {
+			"keccak256": "0xb8b3a97783dddc198b790c4cec1eda7fb47aa38cbaea6555220d0ed8c735c086",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://acf7ed6aff47fbddeff1b85e1225a717dfa8bfb3ab89db0e6564346afcf03693",
+				"dweb:/ipfs/QmQQn5sKn1ARbt1WhYoHwfTJhK8fbQi8MbDQeHxGXTPbPE"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/PointerInterface.sol": {
+			"keccak256": "0x42e5d62984f9d57bab7e32b2c6e3af86f4feb232ea2af6c822032fae88203bd7",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://12ec80973bbc95f59ce3a46aadd7761df6e4131bda14a01a265d76a8e007dd5d",
+				"dweb:/ipfs/QmXwhsxjbkuXSHu6SX6tZxrQCXrdnJ4o2M7b3yFSgcWR1f"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/BufferChainlink.sol": {
+			"keccak256": "0x89388a631c16ad993e4d76d8d19e08ae98e1397f5dfdfb5f9c0b91015df4cf5d",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://88cb96caa94128821daec5478c0f3646902007b81a0604b2e3ab79ea2f40b056",
+				"dweb:/ipfs/Qmd1nu9CpgouPmukNQpZThxKgPZAayXxqBfwbDVHfMrCrF"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/CBORChainlink.sol": {
+			"keccak256": "0x08bda450d4dc1d17147fd29810234d35e2c437f1a99be733cfa7ee516db08a48",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://d47a793b314afe9cd82fcf05ffe4ebbfa5504c2decc83004edbb3b2069d4f0c3",
+				"dweb:/ipfs/Qmd2YLSiS8xeeXqireh6qJgTTwVY2VscZpv2cQBU8gkEJT"
+			]
+		},
+		"https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/ENSResolver.sol": {
+			"keccak256": "0x606bda5f3fa27be4cf04f6636dda443b7787b56e87ade988fca2e51d2147613d",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://63b50d13ca97c4dd62738398bb2e423a36563b827b0af94c0e7a47cf0d4a2e6b",
+				"dweb:/ipfs/QmXjy7BmtnPeCLMaMnGGnsxDPGxohfDpYzP8PnUoh6gBGa"
+			]
+		}
+	},
+	"version": 1
+}

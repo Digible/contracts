@@ -25,12 +25,18 @@ contract DigiStake2 is Ownable, ReentrancyGuard {
     uint256 public stakeCap;
     uint256 public entryFee_bps;
 
+//2.5%
+// DIGI CAP 1MM
+
+
+
 
     constructor(address _stakingToken) public {
         stakingToken = _stakingToken;
         allow_Stake = true;
         stakeCap = 1000 * BIGNUMBER;
         entryFee_bps = 0;
+        allow_Withdrawal = true;
       
     }
 
@@ -67,10 +73,11 @@ contract DigiStake2 is Ownable, ReentrancyGuard {
 
     function _stake(uint256 _amount) internal returns (bool) {
         require(allow_Stake, "Staking is closed now.");
-        require(tokenTotalStaked + _amount <= stakeCap, "Over Max Limit.");
+       
         require(_amount != 0, "Amount 0");
         uint256 _fee = _amount.mul(entryFee_bps).div(10000);
         uint256 _netAmount = _amount - _fee;
+        require(tokenTotalStaked + _netAmount <= stakeCap, "Over Max Limit.");
 
         require(
             IERC20(stakingToken).transferFrom(
@@ -152,10 +159,6 @@ contract DigiStake2 is Ownable, ReentrancyGuard {
 
     function staked(address _staker) external view returns (uint256) {
         return stakeMap[_staker];
-    }
-
-     function rewards(address _staker) external view returns (uint256) {
-        return rewardMap[_staker];
     }
 
     function allowStaking(bool allow) external onlyOwner {

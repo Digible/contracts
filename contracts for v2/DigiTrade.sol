@@ -60,7 +60,7 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
     IERC20 public DIGI;
     uint256 public gasFee_MakeOffer;
     uint256 public gasFee_AcceptOffer;
-    uint256 public gasFeePercentage;
+    uint256 public gasFeeBps;
     address payable _digiFeeCollectorAddress;
 
     constructor(address digi) payable {
@@ -69,10 +69,12 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
         DIGI = IERC20(digi);
         gasFee_MakeOffer = 1 * BIGNUMBER;
         gasFee_AcceptOffer = 100 * BIGNUMBER;
+        gasFeeBps = 10;
         _digiFeeCollectorAddress = payable(msg.sender);
+    
     }
 
-    //["0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8","0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8","0x417Bf7C9dc415FEEb693B6FE313d1186C692600F","0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8", "0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8", "0x417Bf7C9dc415FEEb693B6FE313d1186C692600F"]
+    //["0x2050ebd262Db421De662607A05be26930Edbb8C8","0x2050ebd262Db421De662607A05be26930Edbb8C8","0x03d390Af242C8a8a5340489f2D2649e859d7ec2f","0x2050ebd262Db421De662607A05be26930Edbb8C8", "0x2050ebd262Db421De662607A05be26930Edbb8C8", "0x03d390Af242C8a8a5340489f2D2649e859d7ec2f"]
     // other wallet 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4
 
 
@@ -88,11 +90,15 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
             otherWallet != address(msg.sender),
             "Cant make offer to yourself"
         );
-        require(IERC721(addresses[0]).ownerOf(nftTokenIds[0]) == msg.sender);
+        require(
+            nftTokenIds[0] == 0 ||
+            IERC721(addresses[0]).ownerOf(nftTokenIds[0]) == msg.sender);
         require(
             nftTokenIds[1] == 0 ||
-                IERC721(addresses[1]).ownerOf(nftTokenIds[1]) == msg.sender
-        );
+            IERC721(addresses[1]).ownerOf(nftTokenIds[1]) == msg.sender);
+
+        require(nftTokenIds[0] > 0 || nftTokenIds[1] > 0 ||erc20QtyOffered > 0, "Nothing offered");
+        require(nftTokenIds[2] > 0 || nftTokenIds[3] > 0 ||erc20QtyRequested > 0, "Nothing Requested");
 
         // @dev 4 TRANSFERs ERC20 (OPT) + ERC20 (GAS) + 1 NFT (REQRD) + 1 1NFT (OPT) (4 TOTAL)
 
@@ -116,12 +122,14 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
                 )
         );
         //3 NFT1
+        if (nftTokenIds[0] > 0) {
         IERC721(addresses[0]).safeTransferFrom(
             msg.sender,
             address(this),
             nftTokenIds[0]
         );
 
+        }
         //4 NFT2
         if (nftTokenIds[1] > 0) {
             IERC721(addresses[1]).safeTransferFrom(
@@ -160,7 +168,7 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
         return orderId;
     }
 
-    // @dev @acceptOffer has 7 potential transactions: 2x Exch Tokens, 4x Exchange NFTs, 1x Gas
+    // @dev @acceptOffer has 9 potential transactions: 2x Exch Tokens + 2x Token gasFeeBps, 4x Exchange NFTs, 1x Gas
     function acceptOffer(uint256 orderId)
         external
         payable
@@ -186,13 +194,25 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
             "Not enough DIGI for gas"
         );
 
-        // 1 SEND ERC20 TO OFFEROR (wallets[0])
+            uint256 _feeAmount1 = _offer.erc20QtyRequested.mul(gasFeeBps).div(10000);
+                uint256 _netAmount1 = _offer.erc20QtyRequested.sub(_feeAmount1);
+        // 1 SEND ERC20 TO OFFEROR AFTER FEES (wallets[0]) + Send Fees (2 TRANS)
         require(
-            _offer.erc20QtyRequested == 0 ||
+            _offer.erc20QtyRequested == 0 || (
+                
+              
                 IERC20(addresses[5]).transferFrom(
                     msg.sender,
                     _offer.wallets[0],
-                    _offer.erc20QtyRequested // * BIGNUMBER
+                    _netAmount1 // * BIGNUMBER
+                ) &&
+                 IERC20(addresses[5]).transferFrom(
+                    msg.sender,
+                    _digiFeeCollectorAddress,
+                    _feeAmount1 // * BIGNUMBER
+                )
+                
+                
                 )
         );
 
@@ -211,12 +231,14 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
 
         //3 SEND REQUESTED-NFT1 TO OFFERROR
 
+         if (_offer.nftTokenIds[2] > 0) {
         IERC721(addresses[3]).safeTransferFrom(
             msg.sender,
             _offer.wallets[0],
             _offer.nftTokenIds[2]
         );
-
+         }
+         
         //4 SEND REQUESTED-NFT2 OFFEROR
 
         if (_offer.nftTokenIds[3] > 0) {
@@ -227,22 +249,30 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
             );
         }
 
-        //5 RECV -OFFERED ERC20
+        //5 RECV -OFFERED ERC20 / % fees (2 Trans)
 
         if (_offer.erc20QtyOffered > 0) {
+
+            uint256 _feeAmount2 = _offer.erc20QtyOffered.mul(gasFeeBps).div(10000);
+            uint256 _netAmount2 = _offer.erc20QtyOffered.sub(_feeAmount2);
             IERC20(addresses[2]).transfer(
                 msg.sender,
-                _offer.erc20QtyOffered // * BIGNUMBER
+                _netAmount2 // * BIGNUMBER
+            );
+            IERC20(addresses[2]).transfer(
+                _digiFeeCollectorAddress,
+                _feeAmount2 // * BIGNUMBER
             );
         }
 
         //6 RECV -OFFERED NFT1
-
+          if (_offer.nftTokenIds[0] > 0) {
         IERC721(addresses[0]).safeTransferFrom(
             address(this),
             msg.sender,
             _offer.nftTokenIds[0]
         );
+          }
 
         //7 SEND REQUESTED-NFT2 OFFEROR
 
@@ -292,12 +322,13 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
         }
 
         //2 Send NFT1
+         if(_offer.nftTokenIds[0] > 0 ){
         IERC721(_offer.addresses[0]).safeTransferFrom(  
             address(this)        ,
              offerror,
             _offer.nftTokenIds[0]
         );
-
+         }
         //3 Send NFT2
         if(_offer.nftTokenIds[1] > 0 ){
         IERC721(_offer.addresses[1]).safeTransferFrom(  
@@ -320,13 +351,13 @@ contract DigiTrade is ERC721Holder, ReentrancyGuard, AccessControl {
 
     // @dev ADMIN ACTIONS
 
-    function setGas(address payable digiFeeCollectorAddress, uint256 _gasFee_MakeOffer, uint256 _gasFee_AcceptOffer, uint256 _gasFeePercentage) public 
+    function setGas(address payable digiFeeCollectorAddress, uint256 _gasFee_MakeOffer, uint256 _gasFee_AcceptOffer, uint256 _gasFeeBps) public 
     {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "YOU ARE NOT ADMIN");
         _digiFeeCollectorAddress = digiFeeCollectorAddress;
         gasFee_MakeOffer = _gasFee_MakeOffer;
         gasFee_AcceptOffer = _gasFee_AcceptOffer;
-        gasFeePercentage = _gasFeePercentage;   
+        gasFeeBps = _gasFeeBps;   
     }
 
 }
