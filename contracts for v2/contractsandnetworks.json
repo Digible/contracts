@@ -152,7 +152,10 @@
             {
                 "DigiTrade V1": "0x9885775E4099F495A50533908eD147c6b1f5CC25"
             },
-            {"DigiRoyalty" : "0x817afb326CE0ECFF66dceaDc83C0149f98ad7C39"}
+            {"DigiRoyalty" : "0x817afb326CE0ECFF66dceaDc83C0149f98ad7C39"},
+
+            {"DigiTrack" : "0x3056F7f21bd1ed4cC2Aa60B834E031DA5AFecaC1"}
+
         ]
     },
     "chain9 ": {
