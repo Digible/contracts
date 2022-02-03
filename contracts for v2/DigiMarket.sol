@@ -42,17 +42,18 @@ contract DigiMarket is Ownable, ReentrancyGuard {
     /******************
     INTERNAL ACCOUNTING
     *******************/
+    bool marketLive = true;
     address public digiERC20;
     address[] public feesDestinators;
     uint256[] public feesPercentages;
     mapping (address => bool) public currenciesUsed_map;
-    uint256 public salesCount = 0;
-    uint256 public offerCount = 0;
+    uint256 public salesCount;   
     mapping (uint256 => Sale) public sales;
-    mapping (uint256 => Offer) public offers;
     mapping (address => mapping (uint256 => uint256)) public lastSaleByToken;    
-    mapping (address => mapping (uint256 => uint256)) public lastOfferByToken;  
+
+ 
     mapping (address => mapping(uint256 => Royalty)) public royaltiesByTokenByContractAddress;
+
 
     struct Royalty {
         uint256 fee;
@@ -70,19 +71,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
         uint256 endDate;
     }
 
-      struct Offer {
-        uint256 tokenId;
-        address tokenAddress;
-        address owner;
-        uint256 price;
-        address paymentcurrencyAddress;
-        uint256 requestedNftTokenId;
-        address requestedNftAddress;
-        address offererAddress;
-        bool accepted;
-        uint256 endDate;
-    }
-
+    
     constructor( address _digi
         
     )
@@ -99,6 +88,52 @@ contract DigiMarket is Ownable, ReentrancyGuard {
 
 
     }
+
+
+    function createSaleAnyCurrency(
+        uint256 _tokenId,
+        address _tokenAddress,
+        uint256 _price,
+        uint256 _duration,
+        address _currencyAddress
+    )
+        public
+        requiredAmount(msg.sender, digiAmountRequired)
+        returns (uint256)
+    {
+        require(marketLive, "Market not live");
+        require(IERC721(_tokenAddress).ownerOf(_tokenId) == msg.sender, 'DigiMarket: User is not the token owner');
+        require(IERC721(_tokenAddress).isApprovedForAll(msg.sender, address(this)), 'DigiMarket: DigiMarket contract address must be approved for transfer');
+        
+        uint256 timeNow = _getTime();
+        uint256 newSaleId = salesCount;
+       
+        salesCount += 1;
+
+        sales[newSaleId] = Sale({
+            tokenId: _tokenId,
+            tokenAddress: _tokenAddress,
+            owner: msg.sender,
+            price: _price,
+            royalty: royaltiesByTokenByContractAddress[_tokenAddress][_tokenId].wallet != address(0),
+            buyed: false,
+            endDate: timeNow + _duration,
+            paymentcurrencyAddress: _currencyAddress
+        });
+        lastSaleByToken[_tokenAddress][_tokenId] = newSaleId;
+        if(!currenciesUsed_map[_currencyAddress]){
+            currenciesUsed_map[_currencyAddress] = true;
+        }
+
+        if(royaltiesByTokenByContractAddress[_tokenAddress][_tokenId].wallet == address(0)){
+            royaltiesByTokenByContractAddress[_tokenAddress][_tokenId].wallet = msg.sender;
+        }
+
+        emit NewSaleIdCreated(newSaleId, msg.sender, _tokenId, _tokenAddress, timeNow);
+
+        return newSaleId;
+    }
+
 
 
 
@@ -147,7 +182,9 @@ contract DigiMarket is Ownable, ReentrancyGuard {
         inProgress(_saleId)
     {
         address tokenAddress = sales[_saleId].tokenAddress;
+        require(marketLive, "Market not live");
         require(ERC721 (tokenAddress).ownerOf(sales[_saleId].tokenId) == sales[_saleId].owner, "DigiMarket: Sale creator user is no longer NFT owner");
+        
         ERC20 puchaseCurrency = ERC20(sales[_saleId].paymentcurrencyAddress);
         require(puchaseCurrency.balanceOf(msg.sender) >= sales[_saleId].price, "DigiMarket: User does not have enough balance");
         
@@ -176,45 +213,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
   
 
     
-    function createSaleAnyCurrency(
-        uint256 _tokenId,
-        address _tokenAddress,
-        uint256 _price,
-        uint256 _duration,
-        address _currencyAddress
-    )
-        public
-        requiredAmount(msg.sender, digiAmountRequired)
-        returns (uint256)
-    {
-        require(IERC721(_tokenAddress).ownerOf(_tokenId) == msg.sender, 'DigiMarket: User is not the token owner');
-        require(IERC721(_tokenAddress).isApprovedForAll(msg.sender, address(this)), 'DigiMarket: DigiMarket contract address must be approved for transfer');
-
-        uint256 timeNow = _getTime();
-        uint256 newSaleId = salesCount;
-       
-        salesCount += 1;
-
-        sales[newSaleId] = Sale({
-            tokenId: _tokenId,
-            tokenAddress: _tokenAddress,
-            owner: msg.sender,
-            price: _price,
-            royalty: royaltiesByTokenByContractAddress[_tokenAddress][_tokenId].wallet != address(0),
-            buyed: false,
-            endDate: timeNow + _duration,
-            paymentcurrencyAddress: _currencyAddress
-        });
-        lastSaleByToken[_tokenAddress][_tokenId] = newSaleId;
-        if(!currenciesUsed_map[_currencyAddress]){
-            currenciesUsed_map[_currencyAddress] == true;
-        }
-
-        emit NewSaleIdCreated(newSaleId, msg.sender, _tokenId, _tokenAddress, timeNow);
-
-        return newSaleId;
-    }
-
+    
 
 
     /**
@@ -255,7 +254,7 @@ contract DigiMarket is Ownable, ReentrancyGuard {
         address[] memory _destinators,
         uint256[] memory _percentages
     )
-        public
+        external
         onlyOwner()
     {
         require(_destinators.length == _percentages.length, "DigiMarket: Destinators and percentages lenght are not equals");
@@ -268,6 +267,14 @@ contract DigiMarket is Ownable, ReentrancyGuard {
 
         feesDestinators = _destinators;
         feesPercentages = _percentages;
+    }
+
+
+
+    function setMarketStatus(bool _marketLive) external  onlyOwner() {
+
+        marketLive = _marketLive;
+
     }
 
     /******************
