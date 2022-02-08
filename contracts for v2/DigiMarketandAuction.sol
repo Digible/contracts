@@ -6,9 +6,9 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contr
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/IERC721.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/AccessControl.sol";
+import "https://github.com/Digible/contracts/blob/contractsV2/contracts%20for%20v2/DigiTrack.sol";
 
-contract DigiAuction is Ownable, ReentrancyGuard {
+contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
     uint256 BIGNUMBER = 10**18;
@@ -18,69 +18,66 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     ******************/
     uint256 public purchaseFee = 1000; // 10%
     uint256 public digiAmountRequired = 3000 * (BIGNUMBER);
-    address public digiKey;
+    address public digiTrackAddress;
+    bool public marketLive = true;
 
     /******************
     EVENTS AUCTION
     ******************/
     event CreatedAuction(
-        uint256 auctionId,
+        uint256 saleId,
         address indexed wallet,
+        address indexed nftContractAddress,
         uint256 tokenId,
         uint256 created
     );
     event CanceledAuction(
-        uint256 auctionId,
-        address indexed wallet,
-        uint256 tokenId,
+        uint256 indexed saleId,
+        address indexed wallet,   
         uint256 created
     );
     event NewHighestOffer(
-        uint256 indexed auctionId,
-        address indexed wallet,
+        uint256 indexed saleId,
+        address indexed wallet,     
         uint256 amount,
         uint256 created
     );
-    event DirectBuyed(
-        uint256 indexed tokenId,
-        uint256 auctionId,
+    event DirectBought(
+        uint256 indexed saleId,        
         address indexed wallet,
+        address indexed nftContractAddress,
+        uint256 tokenId,
         uint256 amount,
         uint256 created
     );
     event Claimed(
-        uint256 indexed tokenId,
-        uint256 auctionId,
+        uint256 indexed saleId,        
         address indexed wallet,
-        uint256 amount,
+        address indexed nftContractAddress,
+        uint256 tokenId,      
         uint256 created
     );
-    event Log(uint256 data);
-
-    /******************
-    EVENTS MKTPLACE
-    ******************/
+   
 
     event NewSaleIdCreated(
-        uint256 saleId,
+        uint256 indexed saleId,
         address indexed wallet,
-        uint256 tokenId,
         address tokenAddress,
+        uint256 tokenId,        
         uint256 created
     );
     event SaleCXL(
-        uint256 saleId,
+        uint256 indexed saleId,
         address indexed wallet,
-        uint256 tokenId,
         address tokenAddress,
+        uint256 tokenId,       
         uint256 created
     );
-    event Bought(
-        uint256 saleId,
-        address indexed wallet,
-        uint256 amount,
-        uint256 indexed tokenId,
-        address indexed tokenAddress,
+ 
+    event Refunded(
+        uint256 indexed saleId,
+        address indexed sellersWallet,
+        address buyerWallet,            
         uint256 created
     );
 
@@ -92,85 +89,50 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     address[] public feesDestinators;
     uint256[] public feesPercentages;
 
-    uint256 public auctionCount;
     uint256 public salesCount;
-
-    mapping(uint256 => Auction) public auctions;
+  
     mapping(uint256 => bool) public claimedAuctions;
-    mapping(uint256 => Offer) public highestOffers;
+    mapping (uint256 => Offer) public highestOffers;
+    mapping (uint256 => Offer[]) public offersArr;
     mapping(address => mapping(uint256 => uint256)) public lastAuctionByTokenByContract;
     mapping(address => mapping(uint256 => Royalty)) public royaltiesByTokenByContract;
     mapping(uint256 => Sale) public sales;
     mapping(address => mapping(uint256 => uint256)) public lastSaleByToken;
+    mapping(address => uint256) public accumulatedFeesByCurrency;
+    mapping(uint256 => address) public buyerBySaleId; 
+
 
     struct Royalty {
         uint256 fee;
-        address wallet;
+        address wallet;        
     }
 
-    struct Auction {
+    struct Sale {
         address nftContractAddress;
         uint256 tokenId;
         address owner;
+        bool isAuction;
         uint256 minPrice;
         uint256 fixedPrice;
-        address paymentCurrency;
-        bool buyed;
+        address paymentCurrency;       
         bool royalty;
         uint256 endDate;
+        bool paymentClaimed;
+        bool royaltyClaimed;
+        uint256 finalPrice;       
+        bool refunded;
     }
 
-    // MKT PLACE
-
-    bool marketLive = true;
-
-    struct Sale {
-        uint256 tokenId;
-        address tokenAddress;
-        address owner;
-        uint256 price;
-        address paymentcurrencyAddress;
-        bool royalty;
-        bool buyed;
-        uint256 endDate;
+      struct Offer {
+        address buyer;
+        uint256 offer;
+        uint256 date;
     }
 
-    /******************
-    PUBLIC FUNCTIONS
-
-
-    *******************/
-    constructor(
-        address _digi //@dev required digi to hold to make auction
-    ) public payable {
-        require(address(_digi) != address(0));
-
+    constructor(address _digi,  address _digiTrackAddress) public payable {
+        require(address(_digi) != address(0) && _digiTrackAddress != address(0));
         digiERC20 = _digi;
-    }
-
-    function setRoyaltyForToken(
-        address nftContractAddress,
-        uint256 _tokenId,
-        address beneficiary,
-        uint256 _fee
-    ) external {
-        require(
-            msg.sender == IERC721(nftContractAddress).ownerOf(_tokenId),
-            "DigiAuction: Not the owner"
-        );
-        require(
-            lastAuctionByTokenByContract[nftContractAddress][_tokenId] == 0,
-            "DigiAuction: Auction already created"
-        );
-        require(
-            royaltiesByTokenByContract[nftContractAddress][_tokenId].wallet ==
-                address(0),
-            "DigiAuction: Royalty already set"
-        );
-        royaltiesByTokenByContract[nftContractAddress][_tokenId] = Royalty({
-            wallet: beneficiary,
-            fee: _fee
-        });
+        digiTrackAddress = _digiTrackAddress;
     }
 
     /**
@@ -184,12 +146,15 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         address _paymentCurrency,
         uint256 _duration
     )
-        public
+        external
         payable
         requiredAmount(msg.sender, digiAmountRequired)
         returns (uint256)
     {
         require(_paymentCurrency != address(0));
+        require (marketLive, "Market closed");
+
+        // Transfer NFT into 
         IERC721(_nftContractAddress).transferFrom(
             msg.sender,
             address(this),
@@ -197,26 +162,33 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         );
 
         uint256 timeNow = _getTime();
-        uint256 newAuction = auctionCount;
-        auctionCount += 1;
+        uint256 newAuction = salesCount;
+        salesCount += 1;
 
-        auctions[newAuction] = Auction({
+        sales[newAuction] = Sale({
             nftContractAddress: _nftContractAddress,
             tokenId: _tokenId,
             owner: msg.sender,
+            isAuction: true,
             minPrice: _minPrice,
             fixedPrice: _fixedPrice,
-            paymentCurrency: _paymentCurrency,
-            buyed: false,
+            paymentCurrency: _paymentCurrency,           
             royalty: royaltiesByTokenByContract[_nftContractAddress][_tokenId]
                 .wallet != address(0),
-            endDate: timeNow + _duration
+            endDate: timeNow + _duration,
+            paymentClaimed: false,
+            royaltyClaimed: false,    
+            finalPrice: 0,    
+            refunded: false
         });
         lastAuctionByTokenByContract[_nftContractAddress][
             _tokenId
         ] = newAuction;
 
-        emit CreatedAuction(newAuction, msg.sender, _tokenId, timeNow);
+        if(royaltiesByTokenByContract[_nftContractAddress][_tokenId].wallet == address(0)){
+            royaltiesByTokenByContract[_nftContractAddress][_tokenId].wallet = msg.sender;
+        }
+        emit CreatedAuction(newAuction, msg.sender ,_nftContractAddress, _tokenId, timeNow);
 
         return newAuction;
     }
@@ -225,14 +197,16 @@ contract DigiAuction is Ownable, ReentrancyGuard {
      * @dev User makes an offer for the DIGI NFT.
      */
     function participateAuction(uint256 _auctionId, uint256 _amount)
-        public
+        external
         payable
         nonReentrant
         inProgress(_auctionId)
         minPrice(_auctionId, _amount)
         newHighestOffer(_auctionId, _amount)
     {
-        IERC20(auctions[_auctionId].paymentCurrency).transferFrom(
+        require (marketLive, "Market closed");
+        require(sales[_auctionId].isAuction, "Not and auction");
+        IERC20(sales[_auctionId].paymentCurrency).transferFrom(
             msg.sender,
             address(this),
             _amount
@@ -256,172 +230,192 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     function directBuy(uint256 _auctionId)
         public
         payable
+        nonReentrant
         notClaimed(_auctionId)
         inProgress(_auctionId)
     {
-        require(
-            IERC20(auctions[_auctionId].paymentCurrency).balanceOf(msg.sender) >
-                auctions[_auctionId].fixedPrice,
-            "DigiAuction: User does not have enough balance"
-        );
-        require(
-            auctions[_auctionId].fixedPrice > 0,
-            "DigiAuction: Direct buy not available"
-        );
+        require (marketLive, "Market closed");
+        require(IERC20(sales[_auctionId].paymentCurrency).balanceOf(msg.sender) > sales[_auctionId].fixedPrice, "Not enough balance");
+        require(sales[_auctionId].fixedPrice > 0, "Direct buy unavailable");   
+        uint256 feeAmount = sales[_auctionId].fixedPrice.mul(purchaseFee).div(10000);  
+        sales[_auctionId].finalPrice = sales[_auctionId].fixedPrice;    
+        buyerBySaleId[_auctionId]  = msg.sender;
+                
+        // 1. SEND AUCTION GAS TO DIGI (THIS ADDRESS)
 
-        uint256 amount = auctions[_auctionId].fixedPrice;
-        uint256 feeAmount = amount.mul(purchaseFee).div(10000);
-        address _nftContractAddress = auctions[_auctionId].nftContractAddress;
-        uint256 _tokenId = auctions[_auctionId].tokenId;
-
-        uint256 royaltyFeeAmount = 0;
-        if (auctions[_auctionId].royalty) {
-            royaltyFeeAmount = amount
-                .mul(
-                    royaltiesByTokenByContract[_nftContractAddress][_tokenId]
-                        .fee
-                )
-                .div(10000);
-        }
-        uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
-
-        IERC20(auctions[_auctionId].paymentCurrency).transferFrom(
+        IERC20(sales[_auctionId].paymentCurrency).transferFrom(
             msg.sender,
             address(this),
             feeAmount
         );
-        IERC20(auctions[_auctionId].paymentCurrency).transferFrom(
-            msg.sender,
-            auctions[_auctionId].owner,
-            amountAfterFee
+
+        
+
+        // 2. Send Payments to Seller/Escrow, Royalty/Escrow (2 xfers)
+        processPayment(
+            _auctionId,
+            sales[_auctionId].nftContractAddress,
+            sales[_auctionId].tokenId,  
+            sales[_auctionId].owner,             
+            sales[_auctionId].paymentCurrency, 
+            sales[_auctionId].fixedPrice,
+            msg.sender
         );
-        if (royaltyFeeAmount > 0) {
-            IERC20(auctions[_auctionId].paymentCurrency).transferFrom(
-                msg.sender,
-                royaltiesByTokenByContract[_nftContractAddress][_tokenId]
-                    .wallet,
-                royaltyFeeAmount
-            );
-        }
-        IERC721(auctions[_auctionId].nftContractAddress).transferFrom(
+
+        //3. Send NFT to winner 
+        IERC721(sales[_auctionId].nftContractAddress).transferFrom(
             address(this),
             msg.sender,
-            auctions[_auctionId].tokenId
+            sales[_auctionId].tokenId
         );
-
+        
         uint256 timeNow = _getTime();
-        auctions[_auctionId].buyed = true;
-
+        sales[_auctionId].finalPrice = sales[_auctionId].fixedPrice;
         claimedAuctions[_auctionId] = true;
-
         _returnPreviousOffer(_auctionId);
 
-        emit DirectBuyed(
-            auctions[_auctionId].tokenId,
+        emit DirectBought(
             _auctionId,
             msg.sender,
-            auctions[_auctionId].fixedPrice,
+            sales[_auctionId].nftContractAddress,
+            sales[_auctionId].tokenId,           
+            sales[_auctionId].fixedPrice,
             timeNow
         );
     }
+
+
+    function processPayment(uint256 saleId, address nftContractAddress, uint256 tokenId, address seller,  address paymentCurrency, uint256 grossAmount, address senderOfPayment) internal  {
+        
+        uint256 feeAmount = grossAmount.mul(purchaseFee).div(10000);
+        uint256 royaltyFeeAmount = 0;
+    
+        if (sales[saleId].royalty) {
+            royaltyFeeAmount = grossAmount
+                .mul(royaltiesByTokenByContract[sales[saleId].nftContractAddress][sales[saleId].tokenId].fee)
+                    .div(10000);
+        }
+    
+        uint256 netAmount = grossAmount.sub(feeAmount).sub(royaltyFeeAmount);                   
+        
+        address _receiverOfPayment = address(this);        
+        address _receiverOfRoyalty = address(this);
+        string memory digiSafeStatus = DigiTrack(digiTrackAddress).getStatus(nftContractAddress, tokenId);
+                
+
+
+        // Check if DigiSafeStatus (escrow or seller)
+        if (
+            !IDigiNFT(nftContractAddress).cardPhysical(tokenId) || 
+            keccak256(abi.encodePacked((digiSafeStatus))) == keccak256(abi.encodePacked(("Digisafe - Redemption Ready"))) ||
+            keccak256(abi.encodePacked((digiSafeStatus))) == keccak256(abi.encodePacked(("Digisafe - Pending Grade")))
+           ) {           
+                _receiverOfPayment = seller;
+                _receiverOfRoyalty = royaltiesByTokenByContract[nftContractAddress][tokenId].wallet;                
+                sales[saleId].paymentClaimed = true;
+                sales[saleId].royaltyClaimed = true;  
+                accumulatedFeesByCurrency[paymentCurrency] = accumulatedFeesByCurrency[paymentCurrency].add(feeAmount);  
+            }
+
+
+        // 1. Send Payment to Seller or Escrow if Phygital and not in DigiSafe
+
+        if(senderOfPayment != _receiverOfPayment){
+        IERC20(paymentCurrency).transferFrom(
+            senderOfPayment,
+            _receiverOfPayment,
+            netAmount
+        );
+
+        }
+
+        // 2. Send Royalty to Beneficiary or Escrow 
+
+        if(senderOfPayment != _receiverOfPayment) {
+        if (royaltyFeeAmount > 0) {
+            IERC20(paymentCurrency).transferFrom(
+                msg.sender,
+                _receiverOfRoyalty,
+                royaltyFeeAmount
+            );
+        }   
+
+        }
+
+        
+    }
+
 
     /**
      * @dev Winner user claims DIGI NFT for ended auction.
      */
     function claim(uint256 _auctionId)
-        public
+        external
+        nonReentrant
         ended(_auctionId)
         notClaimed(_auctionId)
     {
-        require(
-            highestOffers[_auctionId].buyer != address(0x0),
-            "DigiAuction: Ended without winner"
-        );
+        require(highestOffers[_auctionId].buyer != address(0x0), "No bids");
 
         uint256 timeNow = _getTime();
-        uint256 amount = highestOffers[_auctionId].offer;
-        uint256 feeAmount = amount.mul(purchaseFee).div(10000);
-        address _nftContractAddress = auctions[_auctionId].nftContractAddress;
-        uint256 _tokenId = auctions[_auctionId].tokenId;
+        sales[_auctionId].finalPrice = highestOffers[_auctionId].offer;
+        buyerBySaleId[_auctionId]  = msg.sender;
 
-        uint256 royaltyFeeAmount = 0;
-        if (auctions[_auctionId].royalty) {
-            royaltyFeeAmount = amount
-                .mul(
-                    royaltiesByTokenByContract[_nftContractAddress][_tokenId]
-                        .fee
-                )
-                .div(10000);
-        }
-        uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
-
-        IERC20(auctions[_auctionId].paymentCurrency).transfer(
-            auctions[_auctionId].owner,
-            amountAfterFee
+        // 1. Send Payments to Seller/Escrow, Royalty/Escrow (2 xfers)
+        processPayment(
+            _auctionId,
+            sales[_auctionId].nftContractAddress,
+            sales[_auctionId].tokenId,  
+            sales[_auctionId].owner,  
+            sales[_auctionId].paymentCurrency, 
+            highestOffers[_auctionId].offer, 
+            address(this)
         );
-        if (royaltyFeeAmount > 0) {
-            IERC20(auctions[_auctionId].paymentCurrency).transfer(
-                royaltiesByTokenByContract[_nftContractAddress][_tokenId]
-                    .wallet,
-                royaltyFeeAmount
-            );
-        }
-        IERC721(auctions[_auctionId].nftContractAddress).transferFrom(
+        
+        //3. Transfer NFT to new Owner
+        IERC721(sales[_auctionId].nftContractAddress).transferFrom(
             address(this),
             highestOffers[_auctionId].buyer,
-            auctions[_auctionId].tokenId
+            sales[_auctionId].tokenId
         );
 
         claimedAuctions[_auctionId] = true;
 
         emit Claimed(
-            auctions[_auctionId].tokenId,
             _auctionId,
             highestOffers[_auctionId].buyer,
-            amount,
+            sales[_auctionId].nftContractAddress,
+            sales[_auctionId].tokenId,         
             timeNow
         );
     }
 
-    /**
-     * @dev Send all the acumulated fees for one token to the fee destinators.
-     */
-    function withdrawAcumulatedFees(address _currency) public onlyOwner {
-        uint256 total = IERC20(_currency).balanceOf(address(this));
 
-        for (uint8 i = 0; i < feesDestinators.length; i++) {
-            IERC20(_currency).transfer(
-                feesDestinators[i],
-                total.mul(feesPercentages[i]).div(100)
-            );
-        }
-    }
 
     /**
      * @dev Cancel auction and returns token.
      */
-    function cancel(uint256 _auctionId) public {
+    function cancel(uint256 _auctionId) external nonReentrant {
         require(
-            auctions[_auctionId].owner == msg.sender || msg.sender == owner(),
+            sales[_auctionId].owner == msg.sender || msg.sender == owner(),
             "DigiAuction: User is not the token owner"
         );
-        require(highestOffers[_auctionId].buyer == address(0x0), "has bids");
-        require(auctions[_auctionId].buyed == false, "Already bought");
+        require(highestOffers[_auctionId].buyer == address(0x0), "Has bids");
+        require(sales[_auctionId].finalPrice == 0, "Already bought");
 
         uint256 timeNow = _getTime();
 
-        auctions[_auctionId].endDate = timeNow;
+        sales[_auctionId].endDate = timeNow;
 
-        IERC721(auctions[_auctionId].nftContractAddress).transferFrom(
+        IERC721(sales[_auctionId].nftContractAddress).transferFrom(
             address(this),
-            auctions[_auctionId].owner,
-            auctions[_auctionId].tokenId
+            sales[_auctionId].owner,
+            sales[_auctionId].tokenId
         );
 
         emit CanceledAuction(
             _auctionId,
-            msg.sender,
-            auctions[_auctionId].tokenId,
+            msg.sender,                       
             timeNow
         );
     }
@@ -435,13 +429,14 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         uint256 _duration,
         address _currencyAddress
     )
-        public
+        external
+        nonReentrant
         requiredAmount(msg.sender, digiAmountRequired)
         returns (uint256)
     {
-        require(marketLive, "Market not live");
-        require(IERC721(_tokenAddress).ownerOf(_tokenId) == msg.sender, 'DigiMarket: User is not the token owner');
-        require(IERC721(_tokenAddress).isApprovedForAll(msg.sender, address(this)), 'DigiMarket: DigiMarket contract address must be approved for transfer');
+        require (marketLive, "Market closed");
+        require(IERC721(_tokenAddress).ownerOf(_tokenId) == msg.sender, "Not owner");
+        require(IERC721(_tokenAddress).isApprovedForAll(msg.sender, address(this)), "Not Approved");
         
         uint256 timeNow = _getTime();
         uint256 newSaleId = salesCount;
@@ -449,79 +444,144 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         salesCount += 1;
 
         sales[newSaleId] = Sale({
+            nftContractAddress: _tokenAddress,
             tokenId: _tokenId,
-            tokenAddress: _tokenAddress,
             owner: msg.sender,
-            price: _price,
-            royalty: royaltiesByTokenByContractAddress[_tokenAddress][_tokenId].wallet != address(0),
-            buyed: false,
+            isAuction: false,
+            minPrice: _price,
+            fixedPrice: _price,
+            paymentCurrency: _currencyAddress,
+            royalty: royaltiesByTokenByContract[_tokenAddress][_tokenId].wallet != address(0),           
             endDate: timeNow + _duration,
-            paymentcurrencyAddress: _currencyAddress
+            paymentClaimed: false,
+            royaltyClaimed: false,   
+            finalPrice: 0,         
+            refunded: false
+            
         });
         lastSaleByToken[_tokenAddress][_tokenId] = newSaleId;
-        if(!currenciesUsed_map[_currencyAddress]){
-            currenciesUsed_map[_currencyAddress] = true;
+       
+
+        if(royaltiesByTokenByContract[_tokenAddress][_tokenId].wallet == address(0)){
+            royaltiesByTokenByContract[_tokenAddress][_tokenId].wallet = msg.sender;
         }
 
-        if(royaltiesByTokenByContractAddress[_tokenAddress][_tokenId].wallet == address(0)){
-            royaltiesByTokenByContractAddress[_tokenAddress][_tokenId].wallet = msg.sender;
-        }
-
-        emit NewSaleIdCreated(newSaleId, msg.sender, _tokenId, _tokenAddress, timeNow);
+        emit NewSaleIdCreated(newSaleId, msg.sender, _tokenAddress, _tokenId,  timeNow);
 
         return newSaleId;
     }
 
 
-  function cancelSale(
-        uint256 _saleId
-    )
+  function cancelSale( uint256 _saleId)
         public
         inProgress(_saleId)
-        returns (uint256)
+        
     {
-        require(IERC721(sales[_saleId].tokenAddress).ownerOf(sales[_saleId].tokenId) == msg.sender, 'DigiMarket: User is not the token owner');
-
+        require(IERC721(sales[_saleId].nftContractAddress).ownerOf(sales[_saleId].tokenId) == msg.sender || msg.sender == owner(), "Not Owner");
         uint256 timeNow = _getTime();
         sales[_saleId].endDate = timeNow;
 
-        emit SaleCXL(_saleId, msg.sender, sales[_saleId].tokenId, sales[_saleId].tokenAddress, timeNow);
+        emit SaleCXL(_saleId, msg.sender, sales[_saleId].nftContractAddress, sales[_saleId].tokenId,  timeNow);
+
     }
 
-    function buy(uint256 _saleId)
-        public
-        inProgress(_saleId)
-    {
-        address tokenAddress = sales[_saleId].tokenAddress;
-        require(marketLive, "Market not live");
-        require(ERC721 (tokenAddress).ownerOf(sales[_saleId].tokenId) == sales[_saleId].owner, "DigiMarket: Sale creator user is no longer NFT owner");
-        
-        ERC20 puchaseCurrency = ERC20(sales[_saleId].paymentcurrencyAddress);
-        require(puchaseCurrency.balanceOf(msg.sender) >= sales[_saleId].price, "DigiMarket: User does not have enough balance");
-        
-        uint amount = sales[_saleId].price;
-        uint256 feeAmount = amount.mul(purchaseFee).div(10000);
-        uint256 royaltyFeeAmount = 0;
-        if (sales[_saleId].royalty) {
-            royaltyFeeAmount = amount.mul(royaltiesByTokenByContractAddress[tokenAddress][sales[_saleId].tokenId].fee).div(10000);
-        }
-        uint256 amountAfterFee = amount.sub(feeAmount).sub(royaltyFeeAmount);
-
-        puchaseCurrency.safeTransferFrom(msg.sender, address(this), feeAmount);
-        puchaseCurrency.safeTransferFrom(msg.sender, sales[_saleId].owner, amountAfterFee);
     
-        if (royaltyFeeAmount > 0) {
-            puchaseCurrency.safeTransferFrom(msg.sender, royaltiesByTokenByContractAddress[tokenAddress][sales[_saleId].tokenId].wallet, royaltyFeeAmount);
-        }
-        IERC721(sales[_saleId].tokenAddress).transferFrom(sales[_saleId].owner, msg.sender, sales[_saleId].tokenId);
-        
-        uint256 timeNow = _getTime();
-        sales[_saleId].buyed = true;
+    function claimPaymentAmount(uint256 saleId) external nonReentrant {
 
-        emit Bought(_saleId, msg.sender, sales[_saleId].price, sales[_saleId].tokenId, sales[_saleId].tokenAddress, timeNow);
+         require(!sales[saleId].paymentClaimed, "Payment Already Claimed");
+         require(sales[saleId].finalPrice > 0, "No Sale Made");
+         string memory digiSafeStatus = DigiTrack(digiTrackAddress).getStatus(sales[saleId].nftContractAddress, sales[saleId].tokenId);
+         require(
+            keccak256(abi.encodePacked((digiSafeStatus))) == keccak256(abi.encodePacked(("Digisafe - Redemption Ready"))) ||
+            keccak256(abi.encodePacked((digiSafeStatus))) == keccak256(abi.encodePacked(("Digisafe - Pending Grade"))),
+            "Not In Digisafe - Can't Claim Yet");            
+        
+        sales[saleId].paymentClaimed = true; 
+        uint256 royaltyFeeAmount = 0;
+    
+        if (sales[saleId].royalty) {
+            royaltyFeeAmount = sales[saleId].finalPrice
+                .mul(royaltiesByTokenByContract[sales[saleId].nftContractAddress][sales[saleId].tokenId].fee)
+                    .div(10000);
+        }
+        uint256 feeAmount = sales[saleId].finalPrice.mul(purchaseFee).div(10000);   
+        uint256 netAmount = sales[saleId].finalPrice.sub(feeAmount).sub(royaltyFeeAmount);                   
+        
+        
+        IERC20(sales[saleId].paymentCurrency).transfer(sales[saleId].owner, netAmount);
+        accumulatedFeesByCurrency[sales[saleId].paymentCurrency] = accumulatedFeesByCurrency[sales[saleId].paymentCurrency].add(feeAmount);
+        
+    }
+
+    
+    function setRoyaltyForToken(
+        address nftContractAddress,
+        uint256 _tokenId,
+        address beneficiary,
+        uint256 _fee
+        ) external {
+        require(msg.sender == IERC721(nftContractAddress).ownerOf(_tokenId) || msg.sender == owner(),  "Not the owner");
+        require(lastAuctionByTokenByContract[nftContractAddress][_tokenId] == 0 && lastSaleByToken[nftContractAddress][_tokenId] == 0, "Market already set");
+        require(royaltiesByTokenByContract[nftContractAddress][_tokenId].wallet == address(0), "Royalty already set");
+        royaltiesByTokenByContract[nftContractAddress][_tokenId] = Royalty({
+            wallet: beneficiary,
+            fee: _fee         
+        });
     }
 
 
+    function claimRoyalty(uint256 saleId) external nonReentrant{
+     require(!sales[saleId].royaltyClaimed, "Royalty Already Claimed");
+     require (sales[saleId].royalty, "No Royalty Set");
+     string memory digiSafeStatus = DigiTrack(digiTrackAddress).getStatus(sales[saleId].nftContractAddress, sales[saleId].tokenId);
+     require(
+            keccak256(abi.encodePacked((digiSafeStatus))) == keccak256(abi.encodePacked(("Digisafe - Redemption Ready"))) ||
+            keccak256(abi.encodePacked((digiSafeStatus))) == keccak256(abi.encodePacked(("Digisafe - Pending Grade"))),
+            "Not In Digisafe - Can't Claim Yet"); 
+    uint256  royaltyFeeAmount = sales[saleId].finalPrice
+                .mul(royaltiesByTokenByContract[sales[saleId].nftContractAddress][sales[saleId].tokenId].fee)
+                    .div(10000);
+     sales[saleId].royaltyClaimed = true;  
+     IERC20(sales[saleId].paymentCurrency).transfer(royaltiesByTokenByContract[sales[saleId].nftContractAddress][sales[saleId].tokenId].wallet, royaltyFeeAmount);          
+          
+
+    }
+
+    function refund(uint256 saleId) external nonReentrant onlyOwner {
+    require(!sales[saleId].paymentClaimed, "Payment Already Claimed");
+    require(sales[saleId].finalPrice > 0, "No Sale Made");
+    require(buyerBySaleId[saleId] != address(0), "No Buyer");
+    string memory digiSafeStatus = DigiTrack(digiTrackAddress).getStatus(sales[saleId].nftContractAddress, sales[saleId].tokenId);
+    require(
+            keccak256(abi.encodePacked((digiSafeStatus))) == keccak256(abi.encodePacked(("Rejected"))),
+            "DigiTrack Status not Rejected - Cannot Refund");
+    IERC20(sales[saleId].paymentCurrency).transfer(buyerBySaleId[saleId], sales[saleId].finalPrice);
+
+    uint256 timeNow = _getTime();
+    emit Refunded(saleId, sales[saleId].owner, buyerBySaleId[saleId], timeNow);
+
+
+
+
+    }
+
+
+/**
+     * @dev Send all the acumulated fees for one token to the fee destinators.
+     */
+    function withdrawAcumulatedFees(address _currency) external nonReentrant onlyOwner {
+        uint256 total = accumulatedFeesByCurrency[_currency];
+
+        for (uint8 i = 0; i < feesDestinators.length; i++) {
+            IERC20(_currency).transfer(
+                feesDestinators[i],
+                total.mul(feesPercentages[i]).div(100)
+            );
+        }
+
+        accumulatedFeesByCurrency[_currency] = 0;
+
+    }
 
 
     /**
@@ -559,7 +619,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         digiAmountRequired = digis1018;
     }
 
-     function setMarketStatus(bool _marketLive) external  onlyOwner() {
+     function setMarketStatus(bool _marketLive) external  onlyOwner {
 
         marketLive = _marketLive;
 
@@ -571,7 +631,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
     function _returnPreviousOffer(uint256 _auctionId) internal {
         Offer memory currentOffer = highestOffers[_auctionId];
         if (currentOffer.offer > 0) {
-            IERC20(auctions[_auctionId].paymentCurrency).transfer(
+            IERC20(sales[_auctionId].paymentCurrency).transfer(
                 currentOffer.buyer,
                 currentOffer.offer
             );
@@ -603,7 +663,7 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
     modifier minPrice(uint256 _auctionId, uint256 _amount) {
         require(
-            _amount >= auctions[_auctionId].minPrice,
+            _amount >= sales[_auctionId].minPrice,
             "DigiAuction: Insufficient offer amount for this auction"
         );
         _;
@@ -611,8 +671,8 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
     modifier inProgress(uint256 _auctionId) {
         require(
-            (auctions[_auctionId].endDate > _getTime()) &&
-                auctions[_auctionId].buyed == false,
+            (sales[_auctionId].endDate > _getTime()) &&
+                sales[_auctionId].finalPrice == 0,
             "DigiAuction: Auction closed"
         );
         _;
@@ -620,8 +680,8 @@ contract DigiAuction is Ownable, ReentrancyGuard {
 
     modifier ended(uint256 _auctionId) {
         require(
-            (_getTime() > auctions[_auctionId].endDate) &&
-                auctions[_auctionId].buyed == false,
+            (_getTime() > sales[_auctionId].endDate) &&
+                sales[_auctionId].finalPrice == 0,
             "DigiAuction: Auction not closed"
         );
         _;
@@ -634,4 +694,10 @@ contract DigiAuction is Ownable, ReentrancyGuard {
         );
         _;
     }
+}
+interface IDigiNFT {
+    
+
+    function cardPhysical(uint256 tokenId) external view returns (bool);
+
 }
