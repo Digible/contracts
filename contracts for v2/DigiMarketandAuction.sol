@@ -263,8 +263,13 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
         );
 
         //3. Send NFT to winner 
+        address nftholder = sales[_auctionId].owner;
+        if (sales[_auctionId].isAuction) {
+        nftholder = address(this);
+        }
+
         IERC721(sales[_auctionId].nftContractAddress).transferFrom(
-            address(this),
+            nftholder,
             msg.sender,
             sales[_auctionId].tokenId
         );
