@@ -217,7 +217,7 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
         newHighestOffer(_auctionId, _amount)
     {
         require(marketLive, "Market closed");
-        require(sales[_auctionId].isAuction, "Not and auction");
+        require(sales[_auctionId].isAuction, "Not an auction");
         IERC20(sales[_auctionId].paymentCurrency).transferFrom(
             msg.sender,
             address(this),
