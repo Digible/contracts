@@ -55,6 +55,7 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
         address indexed wallet,
         address indexed nftContractAddress,
         uint256 tokenId,
+        uint256 amount,
         uint256 created
     );
 
@@ -434,6 +435,7 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
             highestOffers[_auctionId].buyer,
             sales[_auctionId].nftContractAddress,
             sales[_auctionId].tokenId,
+            highestOffers[_auctionId].offer,
             timeNow
         );
     }
