@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// @dev Digiwax Version 2c - packs NFTs minted from multiple smart contract by tokenId 🎁🎁🎁
+// @dev Digiwax Version 3a - packs NFTs minted from multiple smart contract by tokenId 🎁🎁🎁
 pragma solidity 0.8.11;
 import "https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFConsumerBase.sol";
 import "https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ChainlinkClient.sol";
@@ -25,7 +25,7 @@ contract DigiWax is VRFConsumerBase, AccessControl, ChainlinkClient, ERC721Holde
     uint256 private BIGNUMBER = 10**18;
     bytes32 private s_keyHash;
     uint256 private s_fee;
-    address private _linkAddress;   
+    address public _linkAddress;   
 
     IERC20 public DIGI;
     uint256 public wax_fee_digi;
@@ -51,7 +51,7 @@ contract DigiWax is VRFConsumerBase, AccessControl, ChainlinkClient, ERC721Holde
     mapping (string => mapping(address=>bool)) private _walletSubscribed_by_boxName_map;
     mapping (string => bool) public oracleSpoke_by_boxName_map;
     
-    mapping (bytes32 => string) private _boxName_by_requestId_map;
+    mapping (bytes32 => string) public _boxName_by_requestId_map;
     mapping (bytes32 => uint256[]) private _shuffledTokens_by_requestId_map;
     mapping (bytes32 => address[]) private _shuffledAddresses_by_requestId_map;  
   
