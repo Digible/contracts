@@ -48,7 +48,7 @@ contract DigiWax is VRFConsumerBase, AccessControl, ChainlinkClient, ERC721Holde
     mapping (string => mapping (address => mapping(uint256 => bool))) public digiKeyAllowed_byBoxName_3map;  
  
     mapping (string => address[]) public participantWallets_by_boxName_map; 
-    mapping (string => mapping(address=>bool)) private _walletSubscribed_by_boxName_map;
+    mapping (string => mapping(address=>bool)) public _walletSubscribed_by_boxName_map;
     mapping (string => bool) public oracleSpoke_by_boxName_map;
     
     mapping (bytes32 => string) public _boxName_by_requestId_map;
