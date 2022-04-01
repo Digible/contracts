@@ -16,8 +16,12 @@ import {DigiNFT} from "./DigiNFTnbu.sol";
         address digiNFTContractAddress,
         string memory baseUri,
         uint[] memory qtyToMint
-    ) public returns (uint[] memory) {
-        require(qtyToMint.length <= _maxQty, "DigiNFT: You exceeded the max amount of mint");
+    ) public {
+        uint mintAmount = 0;
+        for (uint i = 0; i < qtyToMint.length; i++) {
+            mintAmount = mintAmount + qtyToMint[i];
+        }
+        require(mintAmount <= _maxQty, "DigiNFT: You exceeded the max amount of mint");
         for (uint i = 0; i < qtyToMint.length; i++) {
             for (uint j = 0; j < qtyToMint[i]; j++) {
                 DigiNFT(digiNFTContractAddress).mint(wallet, cardName[i], string(abi.encodePacked(baseUri, cardImage[i])), cardPhysical[i], string(abi.encodePacked(baseUri, tokenUriMetadata[i])));
