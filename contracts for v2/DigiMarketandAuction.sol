@@ -29,6 +29,7 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
         address indexed wallet,
         address indexed nftContractAddress,
         uint256 tokenId,
+        uint256 endDateTime,
         uint256 created
     );
     event CanceledAuction(
@@ -64,6 +65,7 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
         address indexed wallet,
         address tokenAddress,
         uint256 tokenId,
+        uint256 endDateTime,
         uint256 created
     );
     event SaleCXL(
@@ -200,6 +202,7 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
             msg.sender,
             _nftContractAddress,
             _tokenId,
+            sales[newAuction].endDate,
             timeNow
         );
 
@@ -524,6 +527,7 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
             msg.sender,
             _tokenAddress,
             _tokenId,
+            sales[newSaleId].endDate,
             timeNow
         );
 
@@ -708,6 +712,24 @@ contract DigiMarketAndAuction is Ownable, ReentrancyGuard {
     function setFee(uint256 _purchaseFee) external onlyOwner {
         require(_purchaseFee <= 3000, "Max fee 30%");
         purchaseFee = _purchaseFee;
+    }
+
+    function getSales() external view returns (Sale[] memory) {
+
+    Sale[] memory _sales;
+
+    uint256 counter;
+    for (uint256 i = 0; i < salesCount; i++){
+
+        if (sales[i].finalPrice == 0 && sales[i].endDate > _getTime()){
+            _sales[counter] = sales[i];
+            counter+=1;
+        }
+
+    }
+    return _sales;
+   
+
     }
 
     /**
