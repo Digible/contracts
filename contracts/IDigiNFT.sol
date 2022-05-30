@@ -10,4 +10,6 @@ interface IDigiNFT {
     function cardName(uint256 tokenId) external view returns (string memory);
     function cardPhysical(uint256 tokenId) external view returns (bool);
     function transferFrom(address from, address to, uint256 tokenId) external;
+    function setTokenUri(uint256 tokenId, string memory newTokenURI_metadata) public;
+
 }
