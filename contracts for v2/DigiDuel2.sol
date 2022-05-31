@@ -31,7 +31,7 @@
     import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol";
 
 
-    contract DigiDuel2 is VRFConsumerBase,
+    contract DigiDuelRedBlue is VRFConsumerBase,
     AccessControl,
     ChainlinkClient, 
     ERC721Holder
@@ -83,7 +83,7 @@
     mapping (uint256 => bytes32) public requestId_by_duelId;
     mapping (bytes32 => uint256) public duelId_by_requestId;
     mapping (uint256 => uint256) public duelStatus;
-    mapping (address => Duel) duels_byWallet;
+    mapping (address => uint256[]) public duels_byWallet;
     mapping(address => mapping(uint256 => Duel)) lastDuelbyNftAddressAndTokenId;
     uint256 public duelsCount = 0;
 
@@ -98,6 +98,7 @@
         mapping (address => uint256) public duelsTotal_byWallet;
         mapping(address => mapping(uint256 => uint256)) duelsWon_byNftAddressAndTokenId;
         mapping(address => mapping(uint256 => uint256)) duelsTotal_byNftAddressAndTokenId;
+      
 
 
 
@@ -118,6 +119,20 @@
             bool claimed;
         }
 
+   constructor() VRFConsumerBase(0x8C7382F9D8f56b33781fE506E897a4F1e2d17255, 0x326C977E6efc84E512bB9C30f76E30c160eD06FB)  {
+            _setupRole(DEFAULT_ADMIN_ROLE, msg.sender); 
+            _setupRole(CHALLENGER, msg.sender);
+            _linkAddress = 0x326C977E6efc84E512bB9C30f76E30c160eD06FB;
+            s_keyHash = 0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4;
+            s_fee = 100000000000000;       
+            // DIGI = IERC20(0x03d390Af242C8a8a5340489f2D2649e859d7ec2f);
+            DIGI = IERC20(0x03d390Af242C8a8a5340489f2D2649e859d7ec2f);
+            _digiFeeCollectorAddress = msg.sender;
+           
+            duel_fee_digi = 50 * 10 ** 18;
+            
+            
+        }
     
     //  Challengers selectes their Prize and Energy NFTs, and challenges another Prize NFT. The defender will then chose their Energy NFT or refuse / ignore duel.
     function createDuelChallenge(address _prize_nftAddress_ch, 
@@ -130,6 +145,9 @@
     ) public  {
     
         require(hasRole(CHALLENGER, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "No Challenger Status");    
+
+        require(IERC721(_prize_nftAddress_ch).isApprovedForAll(msg.sender, address(this)), "Approve all first");
+        require(IERC721(_energy_nftAddress_ch).isApprovedForAll(msg.sender, address(this)), "Approve all first");
         
         if(freeDuelsByWallet[msg.sender] > 0 || duel_fee_digi == 0 )  
         {
@@ -175,8 +193,9 @@
             });
 
 
-        duels_byWallet[msg.sender]  =  duels[newDuelId];
+        duels_byWallet[msg.sender].push(newDuelId);
         lastDuelbyNftAddressAndTokenId[_prize_nftAddress_ch][_prize_tokenId_ch] = duels[newDuelId];
+    
     
 
         emit IChallengeYou(newDuelId, msg.sender, _prize_nftAddress_def, _prize_tokenId_def, IERC721(_prize_nftAddress_def).ownerOf(_prize_tokenId_def),  block.timestamp + _duration);
@@ -200,10 +219,9 @@
         else {
             require(DIGI.transferFrom(msg.sender,_digiFeeCollectorAddress,  
                 duel_fee_digi));
-                duelsCount += 1; // to start at 1
+              
         }       
-
-        uint256 newDuelId = duelsCount; 
+       
 
 
     
@@ -230,6 +248,8 @@
     duels[duelId].energy_nftAddress_def = _energy_nftAddress_def;
     duels[duelId].energy_tokenId_def = _energy_tokenId_def;
 
+    duels_byWallet[msg.sender].push(duelId);
+     
 
 
     emit ChallengeAccepted(duelId, msg.sender, _energy_nftAddress_def, _energy_tokenId_def );
@@ -261,43 +281,34 @@
 
         
 
-
-        address prizeCard;
-        uint256 prizeCardTokenId;
-        address energyCard;
-        uint256 energyCardTokenId;
         address vanquishedWallet;
 
         //1A Send  Prize Card to Winner
         if(duels[duelId].winner == duels[duelId].wallet_ch){
         
-            prizeCard = duels[duelId].prize_nftAddress_def;
-            prizeCardTokenId = duels[duelId].prize_tokenId_def;
-
-            energyCard = duels[duelId].energy_nftAddress_ch;
-            energyCardTokenId = duels[duelId].energy_tokenId_ch;
+           
 
             vanquishedWallet = duels[duelId].wallet_def;
 
         }  else{
 
-            prizeCard = duels[duelId].prize_nftAddress_ch;
-            prizeCardTokenId = duels[duelId].prize_tokenId_ch;
-
-            energyCard = duels[duelId].energy_nftAddress_def;
-            energyCardTokenId = duels[duelId].energy_tokenId_def;
+           
 
             vanquishedWallet = duels[duelId].wallet_ch;
 
 
         }
        
-     // 1 Transfer Prize Card to Winner 
-     IERC721(prizeCard).transferFrom(address(this), duels[duelId].winner, prizeCardTokenId);
-        
+     // 1A Transfer Prize Cards to Winner 
+     IERC721(duels[duelId].prize_nftAddress_ch).transferFrom(address(this), duels[duelId].winner, duels[duelId].prize_tokenId_ch);
+
+
+     IERC721(duels[duelId].prize_nftAddress_def).transferFrom(address(this), duels[duelId].winner, duels[duelId].prize_tokenId_def);
    
-    // 2 Transfer Energy Card to Vanquished 
-     IERC721(energyCard).transferFrom(address(this), vanquishedWallet, energyCardTokenId);
+    // 2 Transfer Energy Cards to Vanquished 
+     IERC721(duels[duelId].energy_nftAddress_ch).transferFrom(address(this), vanquishedWallet, duels[duelId].energy_tokenId_ch);
+
+     IERC721(duels[duelId].energy_nftAddress_def).transferFrom(address(this), vanquishedWallet, duels[duelId].energy_tokenId_def);
 
 
      duels[duelId].claimed = true;
@@ -312,23 +323,22 @@
 
 
 
+     function getAllDuelsByWallet(address _wallet) external view returns (uint256[] memory){
 
+            uint256[] memory _duels;
 
+            for (uint256 i = 0; i < duels_byWallet[_wallet].length; i++) {
+                _duels[i] = duels_byWallet[_wallet][i];
 
-    constructor() VRFConsumerBase(0x8C7382F9D8f56b33781fE506E897a4F1e2d17255, 0x326C977E6efc84E512bB9C30f76E30c160eD06FB)  {
-            _setupRole(DEFAULT_ADMIN_ROLE, msg.sender); 
-            _setupRole(CHALLENGER, msg.sender);
-            _linkAddress = 0x326C977E6efc84E512bB9C30f76E30c160eD06FB;
-            s_keyHash = 0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4;
-            s_fee = 100000000000000;       
-            // DIGI = IERC20(0x03d390Af242C8a8a5340489f2D2649e859d7ec2f);
-            DIGI = IERC20(0xd9145CCE52D386f254917e481eB44e9943F39138);
-            // _digiFeeCollectorAddress = msg.sender;
-            _digiFeeCollectorAddress = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2;
-            duel_fee_digi = 50 * 10 ** 18;
-            
-            
+            }
+
+            return _duels;
         }
+
+
+
+
+ 
 
 
     //@ dev ORACLE HAS SPOKEN: CHAINLINK VRF CALLS THIS fulfillRandomness FUNCTION:
@@ -393,7 +403,8 @@
         }
 
 
-    //@dev Admin only FUNCTIONS
+
+    // #########################@dev Admin only FUNCTIONS
     
     
         function setFeeAndKeyHash(uint256 fee, bytes32 keyHash) external  {
