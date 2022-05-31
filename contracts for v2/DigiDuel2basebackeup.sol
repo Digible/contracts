@@ -29,13 +29,13 @@
     import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC721/utils/ERC721Holder.sol";
     import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
     import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol";
-
+    import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol";
 
     contract DigiDuel2 is VRFConsumerBase,
     AccessControl,
     ChainlinkClient, 
-    ERC721Holder
-     {
+    ERC721Holder, 
+    ReentrancyGuard {
         using SafeMath for uint256; 
 
         // ChainlinkConfiguration
@@ -49,7 +49,7 @@
     /******************
         EVENTS
         ******************/
-        event IChallengeYou(uint256 indexed duelId, address indexed challanger_wallet, address your_prize_nftAddress, uint256 your_prize_tokenId, address defendersWallet, uint256 endDate);
+        event IChallengeYou(uint256 indexed duelId, address indexed challanger_wallet, address your_prize_nftAddress, uint256 your_prize_tokenId, uint256 endDate, string challengersMessage);
 
         event ChallengeAccepted(uint256 indexed duelId, address indexed wallet, address energyNftAddress_def, uint256 energyTokenId_def);
 
@@ -73,7 +73,7 @@
 
         IERC20 public DIGI; // ##!! SET CORRECT ADDRESS AT DEPLOYMENT ##!!
         uint256 public duel_fee_digi;   
-        address private _digiFeeCollectorAddress;
+        address private _digiFeeCollectorAddress; // TODO
         mapping (address => uint256) public freeDuelsByWallet;
 
         // guts
@@ -107,7 +107,8 @@
             address prize_nftAddress_ch;
             uint256 prize_tokenId_ch;
             address energy_nftAddress_ch;
-            uint256 energy_tokenId_ch;                        
+            uint256 energy_tokenId_ch;
+            string challangersMessage;                
             address wallet_def;
             address prize_nftAddress_def;
             uint256 prize_tokenId_def;
@@ -120,33 +121,27 @@
 
     
     //  Challengers selectes their Prize and Energy NFTs, and challenges another Prize NFT. The defender will then chose their Energy NFT or refuse / ignore duel.
-    function createDuelChallenge(address _prize_nftAddress_ch, 
+    function createChallenge(address _prize_nftAddress_ch, 
     uint256 _prize_tokenId_ch, address _energy_nftAddress_ch, 
     uint256 _energy_tokenId_ch,
     address _prize_nftAddress_def,
     uint256 _prize_tokenId_def,
-    uint256 _duration
-   
-    ) public  {
+
+    uint256 _duration,
+    string memory _challengersMessage
+    ) public {
     
         require(hasRole(CHALLENGER, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "No Challenger Status");    
         
-        if(freeDuelsByWallet[msg.sender] > 0 || duel_fee_digi == 0 )  
-        {
-           
+        if(freeDuelsByWallet[msg.sender] > 0 || duel_fee_digi == 0 || hasRole(DEFAULT_ADMIN_ROLE, msg.sender))  {
         freeDuelsByWallet[msg.sender] -= 1;
-        }
-
-        else if (hasRole(DEFAULT_ADMIN_ROLE, msg.sender)){
-            // no need to pay fees
         }
         else {
             require(DIGI.transferFrom(msg.sender,_digiFeeCollectorAddress,  
                 duel_fee_digi));
-             
+                duelsCount += 1; // to start at 1
         }       
-        
-        duelsCount += 1; // to start at 1
+
         uint256 newDuelId = duelsCount; 
         
         
@@ -158,7 +153,7 @@
                 prize_tokenId_ch: _prize_tokenId_ch,
                 energy_nftAddress_ch: _energy_nftAddress_ch,
                 energy_tokenId_ch: _energy_tokenId_ch,
-             
+                challangersMessage: _challengersMessage,
                 
                 // DEFENDER INFO                
 
@@ -179,7 +174,7 @@
         lastDuelbyNftAddressAndTokenId[_prize_nftAddress_ch][_prize_tokenId_ch] = duels[newDuelId];
     
 
-        emit IChallengeYou(newDuelId, msg.sender, _prize_nftAddress_def, _prize_tokenId_def, IERC721(_prize_nftAddress_def).ownerOf(_prize_tokenId_def),  block.timestamp + _duration);
+        emit IChallengeYou(newDuelId, msg.sender, _prize_nftAddress_def,    _prize_tokenId_def, block.timestamp + _duration, _challengersMessage);
 
 
     }
@@ -321,10 +316,8 @@
             _linkAddress = 0x326C977E6efc84E512bB9C30f76E30c160eD06FB;
             s_keyHash = 0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4;
             s_fee = 100000000000000;       
-            // DIGI = IERC20(0x03d390Af242C8a8a5340489f2D2649e859d7ec2f);
-            DIGI = IERC20(0xd9145CCE52D386f254917e481eB44e9943F39138);
-            // _digiFeeCollectorAddress = msg.sender;
-            _digiFeeCollectorAddress = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2;
+            DIGI = IERC20(0x03d390Af242C8a8a5340489f2D2649e859d7ec2f);
+            _digiFeeCollectorAddress = msg.sender;
             duel_fee_digi = 50 * 10 ** 18;
             
             

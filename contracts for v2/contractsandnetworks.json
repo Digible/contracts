@@ -56,6 +56,12 @@
             {
                 "DigiNFTnbuBulkMint - bulk-minting": "0x3ac6628CF17CF687b80E4E767222844c7b4b9b8d"
             },
+
+            {
+                "MultiMint - bulk-minting": "0x7f3b5Ed13Ab81B119D819FFd60E609C74B002EC9"
+            },
+
+            
             {
                 "DigiWax": "0x805A4471339B9D3a32342072A197eec12C13baFb"
             },
@@ -72,7 +78,7 @@
                 "DigiNftBukTokenUpdate": "0xc56A058dEB713078D05af1301E08276158f97aaa"
             },
             {
-                "DigiTrack" : "0x6968387DBeC43F45BD2462F4Ba8354aE91fdeDD7"
+                "DigiTrack": "0x6968387DBeC43F45BD2462F4Ba8354aE91fdeDD7"
             }
         ]
     },
@@ -105,7 +111,24 @@
         "deployed_contracts": [
             {
                 "DigiNFTnbu1 - internal": "0x3CbF23c081fAA5419810ce0F6BC1ECb73006d848"
-            }
+            },  
+            {
+                "DigiNFTnbu1 - public mint": "0xd57e96223BF054c21dd159c5ab467Ee595D88064"
+            },
+            {
+                "DigiNFTnbu - internal-cube": "0x2AafE249aC0f8AA409D38B8504B7fa620dCC2BA1"
+            },
+
+            {
+                "nftBulkMintAddressBSC": "0x6685b570cEAA9245B49446dDE7b4032222103525"
+            },
+
+            {"DigiLOIBSC": "0x78E9511Cb599C56FeB5C115BcdADEc41c1113e1F"},
+            {"ukraineMintBsc": ""}, 
+            {"digiBSCAddressBSC": "0x7144401c72dEa1f577d090F808C541b2A81108FD"},
+            {"digiTradeAddressBSC": "0x1BCAB2066D105f4670aedf1093Ca9C2e65f510E2"},
+            {"digiTrackAddressBSC": "0x11E4631452B6cF3de0bDAb746b8C46911899A28a"},
+            {"digiAuctionAndMarketPlaceBSC": "0xC0ED4B06A1d0b9d1e245445dF689Cb1368b385E6"}
         ]
     },
     "chain7 ": {
@@ -134,6 +157,10 @@
             {
                 "DigiNFTnbuBulkMint - bulk-minting": "0x6BC284B9D018fC7f8aC2B42Ea9590e17E4107ecF"
             },
+
+            {
+                "MultiMint": "0x8dB592277F06e6F0366EF99A575e22A47b76E703"
+            },           
             {
                 "DigiMarket2": "0xfc6C5ed7B33bC4246557aA82795E16F4B2453358"
             },
@@ -155,10 +182,18 @@
             {
                 "DigiTrade V1": "0x9885775E4099F495A50533908eD147c6b1f5CC25"
             },
-            {"DigiRoyalty" : "0x817afb326CE0ECFF66dceaDc83C0149f98ad7C39"},
-
-            {"DigiTrack" : "0x641A33fBfEcF014585ce6d7BA28770997B592443"}
-
+            {
+                "DigiRoyalty": "0x817afb326CE0ECFF66dceaDc83C0149f98ad7C39"
+            },
+            {
+                "DigiTrack": "0x641A33fBfEcF014585ce6d7BA28770997B592443"
+            },
+            {
+                "DigiMarketAndAuction": "0x32399ED9f644B148D671Eda08c153080Ae3B0B2e"
+            },
+            {
+                "BulkTokenUriUpdate": "0x3F039DEe78c91aFb1e0ec73Dc4AEB433A031231E"
+            }
         ]
     },
     "chain9 ": {
@@ -167,7 +202,13 @@
         "type": "testnet",
         "deployed_contracts": [
             {
-                "DigiNFTnbu1": "0x2050ebd262db421de662607a05be26930edbb8c8"
+                "DigiBSCToken" : "0x7144401c72dEa1f577d090F808C541b2A81108FD",
+                "DigiNFTnbu1": "0x2050ebd262db421de662607a05be26930edbb8c8",
+                "DigiCubeNft:" : "0xA16a4Bd312C11205ebEf9299bd8D8D81DD570E39",
+                "DigiBulkMint" :"0x311Ed227C3cC1061C00e1BD6adA7d75a94969D82",
+                "Ukraine Minter" : "0x9947Ce3fB4197BD11f1cCAc84991F24EC2ED9df1",
+                "DigiTrack" : "0x64a6F8dcdc94E7c93fd9752d0Fe7C6b7f55906Aa",
+                "DigiAuctionAndMktplace": "0xa4ACe9a3D90fbAe14a4b42698F480f4282a49A2d"
             }
         ]
     },
@@ -182,29 +223,15 @@
             {
                 "DigiNFTnbu1": "0x2050ebd262Db421De662607A05be26930Edbb8C8"
             },
-
             {
                 "Digi Auction2": "0xA16a4Bd312C11205ebEf9299bd8D8D81DD570E39"
             },
-
             {
                 "Digi Trade": "0x2F2A809088A33710639e0c572a0b3726db02cB46"
             },
             {
                 "Digi Marketplace": "0x3b25E509901f7FFc1a3DbAA1327Ff60578Ab0dee"
             }
-
-
-
-
-            
-
         ]
     }
 }
-
-
-
-
-
-
