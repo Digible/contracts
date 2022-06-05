@@ -84,7 +84,7 @@
     mapping (bytes32 => uint256) public duelId_by_requestId;
     mapping (uint256 => uint256) public duelStatus;
     mapping (address => uint256[]) public duels_byWallet;
-    mapping(address => mapping(uint256 => Duel)) lastDuelbyNftAddressAndTokenId;
+    mapping(address => mapping(uint256 => Duel)) public lastDuelbyNftAddressAndTokenId;
     uint256 public duelsCount = 0;
 
 
@@ -160,7 +160,7 @@
         }
         else {
             require(DIGI.transferFrom(msg.sender,_digiFeeCollectorAddress,  
-                duel_fee_digi));
+                duel_fee_digi), "Digi Fees Xfer Error");
              
         }       
         
@@ -325,14 +325,8 @@
 
      function getAllDuelsByWallet(address _wallet) external view returns (uint256[] memory){
 
-            uint256[] memory _duels;
-
-            for (uint256 i = 0; i < duels_byWallet[_wallet].length; i++) {
-                _duels[i] = duels_byWallet[_wallet][i];
-
-            }
-
-            return _duels;
+           
+            return duels_byWallet[_wallet];
         }
 
 
