@@ -44,7 +44,7 @@
 
         uint64 private s_subscriptionId;
         bytes32 private s_keyHash;
-        uint256 private s_fee;
+ 
         address public _linkAddress;  
         uint32 callbackGasLimit = 100000;
         uint16 requestConfirmations = 3;
@@ -87,8 +87,8 @@
 
     bytes32 public constant CHALLENGER = keccak256("CHALLENGER"); //
     mapping (uint256 => Duel) public duels;
-    mapping (uint256 => bytes32) public requestId_by_duelId;
-    mapping (bytes32 => uint256) public duelId_by_requestId;
+    mapping (uint256 => uint256) public requestId_by_duelId;
+    mapping (uint256 => uint256) public duelId_by_requestId;
     mapping (uint256 => uint256) public duelStatus;
     mapping (address => uint256[]) public duels_byWallet;
     mapping(address => mapping(uint256 => Duel)) public lastDuelbyNftAddressAndTokenId;
@@ -126,20 +126,20 @@
             bool claimed;
         }
 
-   constructor()  VRFConsumerBaseV2(0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed)  {
+   constructor()  VRFConsumerBaseV2(0xAE975071Be8F8eE67addBC1A82488F1C24858067)  {
             _setupRole(DEFAULT_ADMIN_ROLE, msg.sender); 
             _setupRole(CHALLENGER, msg.sender);
-            _linkAddress = 0x326C977E6efc84E512bB9C30f76E30c160eD06FB;
-            s_keyHash = 0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4;
-            s_fee = 100000000000000;       
+            _linkAddress = 0xb0897686c545045aFc77CF20eC7A532E3120E0F1;
+            s_keyHash = 0x6e099d640cde6de9d40ac749b4b594126b0169747122711109c9985d47751f93;
+                
             // DIGI = IERC20(0x03d390Af242C8a8a5340489f2D2649e859d7ec2f);
-            DIGI = IERC20(0x03d390Af242C8a8a5340489f2D2649e859d7ec2f);
+            DIGI = IERC20(0x4d8181f051E617642e233Be09Cea71Cc3308ffD4);
             _digiFeeCollectorAddress = msg.sender;
            
             duel_fee_digi = 50 * 10 ** 18;
 
-            s_subscriptionId = 847;
-            COORDINATOR = VRFCoordinatorV2Interface(0x7a1BaC17Ccc5b313516C5E16fb24f7659aA5ebed);
+            s_subscriptionId = 115;
+            COORDINATOR = VRFCoordinatorV2Interface(0xAE975071Be8F8eE67addBC1A82488F1C24858067);
            
             
         }
@@ -248,7 +248,7 @@
     IERC721(_energy_nftAddress_def).transferFrom(msg.sender, address(this), _energy_tokenId_def);
 
     // consultOracle
-    bytes32 requestId = COORDINATOR.requestRandomWords(
+    uint256 requestId = COORDINATOR.requestRandomWords(
       s_keyHash,
       s_subscriptionId,
       requestConfirmations,
@@ -356,7 +356,7 @@
        
 
    function fulfillRandomWords(
-    uint256, /* requestId */
+    uint256 requestId,
     uint256[] memory randomWords
   ) internal override {
     
@@ -379,7 +379,7 @@
 
     
             duels[duelId].endDate = block.timestamp;
-            duelStatus[duelId] = randomness;
+            duelStatus[duelId] = randomWords[0];
 
             // POPULATE STATS
 
@@ -407,18 +407,8 @@
     // #########################@dev Admin only FUNCTIONS
     
     
-        function setFeeAndKeyHash(uint256 fee, bytes32 keyHash) external  {
-            require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin only");
-            s_fee = fee;
-            s_keyHash = keyHash;
-        }
 
-    function withdrawGas(address tokenContract)  external  {    
-            require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin only");
-        
-        IERC20 token = IERC20(tokenContract);
-        require(token.transfer(msg.sender, token.balanceOf(address(this))), "Unable to transfer");
-    }
+ 
 
         function setDigiFees(uint256 human_fee, address new_currencyAddress)  external  {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin only");
