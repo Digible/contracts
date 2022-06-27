@@ -57,23 +57,16 @@
         EVENTS
         ******************/
         event IChallengeYou(uint256 indexed duelId, address indexed challanger_wallet, address your_prize_nftAddress, uint256 your_prize_tokenId, address defendersWallet, uint256 endDate);
-
         event ChallengeAccepted(uint256 indexed duelId, address indexed wallet, address energyNftAddress_def, uint256 energyTokenId_def);
-
-
         event WinnerDeclared(uint256 indexed duelId, 
         address indexed winningWallet, 
         address prize_nftAddress_ch,
         uint256 prize_tokenId_ch,
         address prize_nftAddress_def,
-        uint256 prize_tokenId_def
-        
-        
+        uint256 prize_tokenId_def               
         );
-
         event CxlDuel(uint256 indexed duelId, bool unDo);
-    
-    
+       
 
 
         // Access Fee Accounting 
@@ -85,14 +78,14 @@
 
         // guts
 
-    bytes32 public constant CHALLENGER = keccak256("CHALLENGER"); //
-    mapping (uint256 => Duel) public duels;
-    mapping (uint256 => uint256) public requestId_by_duelId;
-    mapping (uint256 => uint256) public duelId_by_requestId;
-    mapping (uint256 => uint256) public duelStatus;
-    mapping (address => uint256[]) public duels_byWallet;
-    mapping(address => mapping(uint256 => Duel)) public lastDuelbyNftAddressAndTokenId;
-    uint256 public duelsCount = 0;
+        bytes32 public constant CHALLENGER = keccak256("CHALLENGER"); //
+        mapping (uint256 => Duel) public duels;
+        mapping (uint256 => uint256) public requestId_by_duelId;
+        mapping (uint256 => uint256) public duelId_by_requestId;
+        mapping (uint256 => uint256) public duelStatus;
+        mapping (address => uint256[]) public duels_byWallet;
+        mapping(address => mapping(uint256 => Duel)) public lastDuelbyNftAddressAndTokenId;
+        uint256 public duelsCount = 0;
 
 
 
@@ -129,17 +122,19 @@
    constructor()  VRFConsumerBaseV2(0xAE975071Be8F8eE67addBC1A82488F1C24858067)  {
             _setupRole(DEFAULT_ADMIN_ROLE, msg.sender); 
             _setupRole(CHALLENGER, msg.sender);
+
+            // CHAINLINK CONFIG
             _linkAddress = 0xb0897686c545045aFc77CF20eC7A532E3120E0F1;
-            s_keyHash = 0x6e099d640cde6de9d40ac749b4b594126b0169747122711109c9985d47751f93;
-                
-            // DIGI = IERC20(0x03d390Af242C8a8a5340489f2D2649e859d7ec2f);
+            s_keyHash = 0xcc294a196eeeb44da2888d17c0625cc88d70d9760a69d58d853ba6581a9ab0cd;
+            s_subscriptionId = 115;
+            COORDINATOR = VRFCoordinatorV2Interface(0xAE975071Be8F8eE67addBC1A82488F1C24858067);    
+            
+            // DIGI CONFIG
             DIGI = IERC20(0x4d8181f051E617642e233Be09Cea71Cc3308ffD4);
-            _digiFeeCollectorAddress = msg.sender;
-           
+            _digiFeeCollectorAddress = msg.sender;           
             duel_fee_digi = 50 * 10 ** 18;
 
-            s_subscriptionId = 115;
-            COORDINATOR = VRFCoordinatorV2Interface(0xAE975071Be8F8eE67addBC1A82488F1C24858067);
+            
            
             
         }
@@ -408,7 +403,10 @@
     
     
 
- 
+ function setHash(bytes32 newHash) external {
+
+     s_keyHash = newHash;
+ }
 
         function setDigiFees(uint256 human_fee, address new_currencyAddress)  external  {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin only");
