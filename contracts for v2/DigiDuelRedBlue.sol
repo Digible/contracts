@@ -96,8 +96,8 @@
     
         mapping (address => uint256) public duelsWon_byWallet; 
         mapping (address => uint256) public duelsTotal_byWallet;
-        mapping(address => mapping(uint256 => uint256)) duelsWon_byNftAddressAndTokenId;
-        mapping(address => mapping(uint256 => uint256)) duelsTotal_byNftAddressAndTokenId;
+        mapping(address => mapping(uint256 => uint256)) public duelsWon_byNftAddressAndTokenId;
+        mapping(address => mapping(uint256 => uint256)) public duelsTotal_byNftAddressAndTokenId;
       
 
 
